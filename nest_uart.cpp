@@ -23,14 +23,14 @@ void uart_putc(char c) {
     usart_send_blocking(NEST_UART, c);
 }
 
-void uart_puts(char *string) {
+void uart_puts(const char *string) {
     while (*string) {
         uart_putc(string[0]);
         string++;
     }
 }
 
-void uart_putln(char *string) {
+void uart_putln(const char *string) {
     uart_puts(string);
     uart_puts("\r\n");
 }
@@ -45,7 +45,7 @@ char hexchr(uint8_t c) {
 void uart_putd(ssize_t n) {
     char buf[22];
     uint8_t i = 0;
-    const bool negative = i < 0;
+    const bool negative = n < 0;
 
     // Convert to number in buffer
     do {

@@ -12,8 +12,8 @@
 const uint32_t NEST_UART = USART1;
 
 void uart_setup(void);
-void uart_puts(char *string);
-void uart_putln(char *string);
+void uart_puts(const char *string);
+void uart_putln(const char *string);
 void uart_putd(size_t i);
 void uart_putd(ssize_t i);
 void uart_putf(double i);
