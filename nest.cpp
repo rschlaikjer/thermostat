@@ -14,14 +14,8 @@ static void clock_setup(void) {
 }
 
 
-static void systick_setup(void) {
-    systick_set_clocksource(STK_CSR_CLKSOURCE_EXT);
-    STK_CVR = 0;
-    systick_set_reload(rcc_ahb_frequency / 8 / 1000);
-    systick_counter_enable();
-}
-
 static void gpio_setup(void) {
+    gpio_mode_setup(GPIOA, GPIO_MODE_INPUT, GPIO_PUPD_NONE, GPIO9 | GPIO10);
 }
 
 #define ADDR 0x60
@@ -40,10 +34,10 @@ void nest_init() {
     gpio_setup();
     uart_setup();
     n_i2c_setup();
-
-    sht_log();
 }
 
 void nest_event_loop() {
-
+    sht_log();
+    uart_putln("");
+    sleep(3000);
 }

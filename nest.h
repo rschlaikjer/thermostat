@@ -13,6 +13,7 @@
 #include "nest_i2c.h"
 #include "nest_lcd.h"
 #include "nest_sht.h"
+#include "nest_realtime.h"
 
 void nest_init(void);
 

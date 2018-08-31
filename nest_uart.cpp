@@ -1,11 +1,12 @@
 #include "nest_uart.h"
 
 void uart_setup() {
-    // Enable clocks for UART1
-    rcc_periph_clock_enable(RCC_USART1);
+    // Enable clocks for UART
+    rcc_periph_clock_enable(RCC_USART2);
 
     // Setup TX pin as alternate function
-    gpio_set_af(GPIOA, GPIO_AF1, GPIO9);
+    gpio_mode_setup(GPIOA, GPIO_MODE_AF, GPIO_PUPD_NONE, GPIO2 | GPIO3);
+    gpio_set_af(GPIOA, GPIO_AF1, GPIO2 | GPIO3);
 
     // Setup USART parameters
     usart_set_baudrate(NEST_UART, 9600);
@@ -45,7 +46,7 @@ char hexchr(uint8_t c) {
 }
 
 void uart_putd(ssize_t n) {
-    char buf[22];
+    char buf[22] = {'0'};
     uint8_t i = 0;
     const bool negative = n < 0;
 
@@ -60,12 +61,12 @@ void uart_putd(ssize_t n) {
 
     // Write out buffer in reverse order
     do {
-        uart_putc(buf[i--]);
+        uart_putc(buf[--i]);
     } while (i > 0);
 }
 
 void uart_putd(size_t n) {
-    char buf[22];
+    char buf[22] = {'0'};
     uint8_t i = 0;
 
     // Convert to number in buffer
@@ -75,12 +76,12 @@ void uart_putd(size_t n) {
 
     // Convert to number in buffer
     do {
-        uart_putc(buf[i--]);
+        uart_putc(buf[--i]);
     } while (i > 0);
 }
 
 void uart_putx(size_t n) {
-    char buf[22];
+    char buf[22] = {'0'};
     uint8_t i = 0;
 
     // Convert to number in buffer
@@ -91,8 +92,17 @@ void uart_putx(size_t n) {
 
     // Convert to number in buffer
     do {
-        uart_putc(buf[i--]);
+        uart_putc(buf[--i]);
     } while (i > 0);
+}
+
+double fpow(double a, int b) {
+    double acc = a;
+    b--;
+    while (b--) {
+        acc *= a;
+    }
+    return acc;
 }
 
 void uart_putf(double n, uint8_t precision) {
@@ -101,8 +111,8 @@ void uart_putf(double n, uint8_t precision) {
     uart_putd(ipart);
 
     // Extract floating part
-    double fpart = ipart - (double) ipart;
+    double fpart = n - (double) ipart;
     uart_putc('.');
-    fpart = fpart * pow(10, precision);
+    fpart = fpart * fpow(10, precision);
     uart_putd((size_t) fpart);
 }

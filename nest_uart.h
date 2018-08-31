@@ -9,7 +9,7 @@
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/usart.h>
 
-const uint32_t NEST_UART = USART1;
+const uint32_t NEST_UART = USART2;
 
 void uart_setup(void);
 void uart_puts(const char *string);

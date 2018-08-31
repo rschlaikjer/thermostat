@@ -11,7 +11,7 @@ void n_i2c_setup(void) {
     i2c_reset(NEST_I2C);
 
     // Configure GPIOs
-    gpio_mode_setup(GPIOB, GPIO_MODE_AF, GPIO_PUPD_NONE, GPIO6 | GPIO7);
+    gpio_mode_setup(GPIOB, GPIO_MODE_AF, GPIO_PUPD_PULLUP, GPIO6 | GPIO7);
     gpio_set_af(GPIOB, GPIO_AF1, GPIO6 | GPIO7);
 
     i2c_peripheral_disable(NEST_I2C);
@@ -66,7 +66,7 @@ uint8_t n_i2c_transfer(const uint8_t address,
 
                 // If there's been a NAK, then abort
                 if (i2c_nack(NEST_I2C)) {
-                    uart_puts("NAK while trying to communicate with ");
+                    uart_puts("NAK while trying to communicate with 0x");
                     uart_putx(address);
                     uart_putln("");
                     return NEST_I2C_ERROR;
@@ -75,6 +75,11 @@ uint8_t n_i2c_transfer(const uint8_t address,
 
             // If the wait is over, send the data
             i2c_send_data(NEST_I2C, *write++);
+        }
+
+        // If we're going to do a read, wait here for the writes to be done
+        if (read_count) {
+            while (!i2c_transfer_complete(NEST_I2C));
         }
     }
 
@@ -90,11 +95,13 @@ uint8_t n_i2c_transfer(const uint8_t address,
         i2c_send_start(NEST_I2C);
 
         // Safe to auto-end after this
-        i2c_enable_autoend(NEST_I2C);
 
         while (read_count--) {
+            while (i2c_received_data(NEST_I2C) == 0);
             *read++ = i2c_get_data(NEST_I2C);
         }
+
+        i2c_send_stop(NEST_I2C);
     }
 
     return NEST_I2C_XFER_OK;

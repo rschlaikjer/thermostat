@@ -28,6 +28,7 @@ OBJS		+= $(BINARY).o \
 			   $(BINARY)_uart.o \
 			   $(BINARY)_lcd.o \
 			   $(BINARY)_i2c.o \
+			   $(BINARY)_realtime.o \
 			   $(BINARY)_sht.o
 
 
