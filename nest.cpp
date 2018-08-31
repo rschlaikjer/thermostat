@@ -34,10 +34,15 @@ void nest_init() {
     gpio_setup();
     uart_setup();
     n_i2c_setup();
+    adc_setup();
 }
 
 void nest_event_loop() {
     sht_log();
+    uart_putln("");
+    uint16_t light = adc_read();
+    uart_puts("Brightness: ");
+    uart_putd(light);
     uart_putln("");
     sleep(3000);
 }

@@ -14,6 +14,7 @@
 #include "nest_lcd.h"
 #include "nest_sht.h"
 #include "nest_realtime.h"
+#include "nest_adc.h"
 
 void nest_init(void);
 
