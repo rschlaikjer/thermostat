@@ -26,7 +26,9 @@ CSTD		?= -std=c99
 
 OBJS		+= $(BINARY).o \
 			   $(BINARY)_uart.o \
-			   $(BINARY)_lcd.o
+			   $(BINARY)_lcd.o \
+			   $(BINARY)_i2c.o \
+			   $(BINARY)_sht.o
 
 
 ifeq ($(strip $(OPENCM3_DIR)),)
@@ -110,7 +112,7 @@ endif
 ###############################################################################
 # Used libraries
 
-LDLIBS		+= -Wl,--start-group -lc -lgcc -lnosys -Wl,--end-group
+LDLIBS		+= -Wl,--start-group -lc -lgcc -lnosys -Wl,--end-group -lm
 
 ###############################################################################
 ###############################################################################

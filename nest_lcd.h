@@ -7,4 +7,8 @@
 
 #include "nest_uart.h"
 
+#define NEST_I2C I2C1
+
+#define LCD_I2C_ADDR 0x72
+
 #endif // NEST_LCD_H

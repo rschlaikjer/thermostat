@@ -38,6 +38,46 @@ uint16_t readUInt(uint8_t address, uint8_t reg) {
     return (((uint16_t) data[0]) << 8) | data[1];
 }
 
+void lcd_init() {
+    uint8_t init_commands[11];
+    init_commands[0] = 0x3A; // 8 bit data length extension Bit RE=1; REV=0
+    init_commands[1] = 0x09; // 4 line display
+    init_commands[2] = 0x06; // Bottom view
+    init_commands[3] = 0x1E; // BS1 = 1
+    init_commands[4] = 0x39; // 8 bit data length extension Bit RE=0; IS=1
+    init_commands[5] = 0x1B; // BS0=1 -> Bias=1/6
+    init_commands[6] = 0x6E; // Divider on, set value
+    init_commands[7] = 0x57; // Booster on and set contrast (DB1=C5, DB0=C4)
+    init_commands[8] = 0x72; // Set contrast (DB3-DB0=C3-C0)
+    init_commands[9] = 0x38; // 8 bit data length extension Bit RE=0; IS=0
+    init_commands[10] = 0x0F; // Display on, cursor on, blink on
+
+    i2c_transfer7(NEST_I2C, LCD_I2C_ADDR, init_commands, 11, NULL, 0);
+}
+
+/*
+ * Switch ROM used for LCD.
+ * Rom must be between 1 and 3.
+ */
+void lcd_rom_select(uint8_t rom) {
+    uint8_t rom_cmd[4];
+    rom_cmd[0] = 0x3A; // RE = 1
+    rom_cmd[1] = 0x72; // Rom select command
+    switch (rom) {
+        case 3:
+            rom_cmd[2] = 0x0C;
+            break;
+        case 2:
+            rom_cmd[2] = 0x04;
+            break;
+        case 1:
+        default:
+            rom_cmd[2] = 0x00;
+    }
+    rom_cmd[3] = 0x38; // RE = 0
+    i2c_transfer7(NEST_I2C, LCD_I2C_ADDR, rom_cmd, 4, NULL, 0);
+}
+
 int old_main(void) {
     i2c_setup();
 
@@ -90,7 +130,7 @@ int old_main(void) {
     const double T = a + (mc / (a + md));
 
     uart_puts("Temperature: ");
-    uart_putf(T * 100);
+    uart_putf(T * 100, 1);
     uart_putln("");
 
     uart_putln("Done");

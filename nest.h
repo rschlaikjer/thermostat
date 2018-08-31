@@ -10,6 +10,12 @@
 #include <libopencm3/cm3/systick.h>
 
 #include "nest_uart.h"
+#include "nest_i2c.h"
 #include "nest_lcd.h"
+#include "nest_sht.h"
+
+void nest_init(void);
+
+void nest_event_loop(void);
 
 #endif // NEST_H

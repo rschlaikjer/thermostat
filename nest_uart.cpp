@@ -1,13 +1,13 @@
 #include "nest_uart.h"
 
 void uart_setup() {
-    /* Enable clocks for USART2. */
+    // Enable clocks for UART1
     rcc_periph_clock_enable(RCC_USART1);
 
-    /* Setup USART1 TX pin as alternate function. */
+    // Setup TX pin as alternate function
     gpio_set_af(GPIOA, GPIO_AF1, GPIO9);
 
-    /* Setup USART2 parameters. */
+    // Setup USART parameters
     usart_set_baudrate(NEST_UART, 9600);
     usart_set_databits(NEST_UART, 8);
     usart_set_parity(NEST_UART, USART_PARITY_NONE);
@@ -15,8 +15,10 @@ void uart_setup() {
     usart_set_mode(NEST_UART, USART_MODE_TX);
     usart_set_flow_control(NEST_UART, USART_FLOWCONTROL_NONE);
 
-    /* Finally enable the USART. */
+    // Finally enable the USART
     usart_enable(NEST_UART);
+
+    uart_putln("\r\nUART initialized");
 }
 
 void uart_putc(char c) {
