@@ -42,6 +42,10 @@ static void init_chip_pins(void) {
 
 	/* Configure CHIP_EN as pull-up */
     gpio_mode_setup(gWincENPort, GPIO_MODE_INPUT, GPIO_PUPD_PULLUP, gWincENPin);
+
+    // Chip select
+    gpio_mode_setup(gWincCSPort, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, gWincCSPin);
+    gpio_set(gWincCSPort, gWincCSPin);
 }
 
 static void deinit_chip_pins(void)
