@@ -1,4 +1,14 @@
 #include "nest.h"
+#include <stdio.h>
+#include <errno.h>
+
+
+extern "C" {
+    #include "winc1500/socket/include/socket.h"
+    #include "winc1500/driver/include/m2m_periph.h"
+    #include "winc1500/driver/include/m2m_wifi.h"
+    int _write(int file, char *ptr, int len);
+}
 
 static void clock_setup(void) {
     // Set clock at 48MHz from internal oscillator
@@ -19,6 +29,23 @@ static void gpio_setup(void) {
 }
 
 #define ADDR 0x60
+
+int _write(int file, char *ptr, int len)
+{
+    int i;
+
+    if (file == STDOUT_FILENO || file == STDERR_FILENO) {
+        for (i = 0; i < len; i++) {
+            if (ptr[i] == '\n') {
+                usart_send_blocking(NEST_UART, '\r');
+            }
+            usart_send_blocking(NEST_UART, ptr[i]);
+        }
+        return i;
+    }
+    errno = EIO;
+    return -1;
+}
 
 int main(void) {
     nest_init();
