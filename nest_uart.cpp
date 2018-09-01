@@ -9,7 +9,7 @@ void uart_setup() {
     gpio_set_af(GPIOA, GPIO_AF1, GPIO2 | GPIO3);
 
     // Setup USART parameters
-    usart_set_baudrate(NEST_UART, 9600);
+    usart_set_baudrate(NEST_UART, 115200);
     usart_set_databits(NEST_UART, 8);
     usart_set_parity(NEST_UART, USART_PARITY_NONE);
     usart_set_stopbits(NEST_UART, USART_CR2_STOPBITS_1);
@@ -87,7 +87,7 @@ void uart_putx(size_t n) {
     // Convert to number in buffer
     do {
         const uint8_t v = n % 16;
-        buf[i++] = v > 9 ? 'A' + v - 9 : v + '0';
+        buf[i++] = v > 9 ? 'A' + v - 10 : v + '0';
     } while ((n /= 16) > 0);
 
     // Convert to number in buffer
