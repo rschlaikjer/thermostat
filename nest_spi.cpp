@@ -12,8 +12,10 @@ void n_spi_setup(void) {
     // SCK = PB13
     // MISO = PB14
     // MOSI = PB15
-    gpio_mode_setup(GPIOB, GPIO_MODE_AF, GPIO_PUPD_NONE, GPIO12 | GPIO13 | GPIO14 | GPIO15);
-    gpio_set_af(GPIOB, GPIO_AF0, GPIO12 | GPIO13 | GPIO14 | GPIO15);
+    gpio_mode_setup(GPIOB, GPIO_MODE_AF, GPIO_PUPD_NONE, GPIO12 | GPIO13 | GPIO15);
+    gpio_mode_setup(GPIOB, GPIO_MODE_INPUT, GPIO_PUPD_NONE, GPIO14);
+    // gpio_mode_setup(GPIOB, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, GPIO12);
+    gpio_set_af(GPIOB, GPIO_AF0, GPIO13 | GPIO14 | GPIO15);
 
     // Reset SPI, SPI_CR1 register cleared, SPI is disabled
     spi_reset(NEST_SPI);
@@ -21,7 +23,7 @@ void n_spi_setup(void) {
     // Set main SPI settings
     spi_init_master(
         NEST_SPI,
-        SPI_CR1_BAUDRATE_FPCLK_DIV_4,
+        SPI_CR1_BAUDRATE_FPCLK_DIV_8,
         SPI_CR1_CPOL_CLK_TO_0_WHEN_IDLE,
         SPI_CR1_CPHA_CLK_TRANSITION_1,
         SPI_CR1_MSBFIRST
@@ -39,12 +41,11 @@ void n_spi_setup(void) {
     spi_set_nss_high(NEST_SPI);
 
     // Data transfers are bidirectional
-    spi_set_bidirectional_mode(NEST_SPI);
+    spi_set_unidirectional_mode(NEST_SPI);
 
     // Data is 8 bits
     spi_set_data_size(NEST_SPI, SPI_CR2_DS_8BIT);
-
-    spi_set_standard_mode(NEST_SPI, 0);
+    spi_fifo_reception_threshold_8bit(NEST_SPI);
 
     /* Enable NEST_SPI periph. */
     spi_enable(NEST_SPI);
