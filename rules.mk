@@ -33,6 +33,25 @@ OBJS		+= $(BINARY).o \
 			   $(BINARY)_adc.o \
 			   $(BINARY)_spi.o
 
+# WINC libraries
+OBJS	+= ./winc1500/socket/source/socket.o \
+	./winc1500/common/source/nm_common.o \
+	./winc1500/driver/source/m2m_periph.o \
+	./winc1500/driver/source/nmasic.o \
+	./winc1500/driver/source/m2m_ota.o \
+	./winc1500/driver/source/nmspi.o \
+	./winc1500/driver/source/nmbus.o \
+	./winc1500/driver/source/m2m_hif.o \
+	./winc1500/driver/source/m2m_ate_mode.o \
+	./winc1500/driver/source/nmdrv.o \
+	./winc1500/driver/source/m2m_wifi.o \
+	./winc1500/driver/source/nmuart.o \
+	./winc1500/driver/source/m2m_crypto.o \
+	./winc1500/driver/source/m2m_ssl.o \
+	./winc1500/driver/source/nmi2c.o \
+	./winc1500/spi_flash/source/spi_flash.o \
+	./winc1500/bsp/source/nm_bsp_opencm3.o \
+	./winc1500/bus_wrapper/source/nm_bus_wrapper_opencm3.o
 
 ifeq ($(strip $(OPENCM3_DIR)),)
 # user has not specified the library path, so we try to detect it
@@ -62,7 +81,7 @@ endef
 
 ifeq ($(strip $(DEVICE)),)
 # Old style, assume LDSCRIPT exists
-DEFS		+= -I$(OPENCM3_DIR)/include
+DEFS		+= -I$(OPENCM3_DIR)/include -I./winc1500/
 LDFLAGS		+= -L$(OPENCM3_DIR)/lib
 LDLIBS		+= -l$(LIBNAME)
 LDSCRIPT	?= $(BINARY).ld
