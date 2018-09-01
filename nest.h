@@ -15,6 +15,7 @@
 #include "nest_sht.h"
 #include "nest_realtime.h"
 #include "nest_adc.h"
+#include "nest_spi.h"
 
 void nest_init(void);
 

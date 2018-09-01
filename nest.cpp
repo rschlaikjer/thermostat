@@ -34,15 +34,42 @@ void nest_init() {
     gpio_setup();
     uart_setup();
     n_i2c_setup();
+    n_spi_setup();
     adc_setup();
 }
 
+#define READ_0_RATE_MS 3000
+#define READ_1_RATE_MS 30000
+
+uint64_t last_read_0 = 0;
+uint64_t last_read_1 = 0;
+
 void nest_event_loop() {
-    sht_log();
-    uart_putln("");
-    uint16_t light = adc_read();
-    uart_puts("Brightness: ");
-    uart_putd(light);
-    uart_putln("");
-    sleep(3000);
+    double temp, rh;
+    if (millis() - last_read_0 > READ_0_RATE_MS) {
+        uart_puts("Sensor 0: ");
+        if (sht_read(SHT_0_ADDR, &temp, &rh)) {
+            uart_puts("Temp: ");
+            uart_putf(temp, 2);
+            uart_puts(" RH: ");
+            uart_putf(rh, 1);
+            uart_putln("%");
+        } else {
+            uart_putln("READ ERROR");
+        }
+        last_read_0 = millis();
+    }
+    if (millis() - last_read_1 > READ_1_RATE_MS) {
+        uart_puts("Sensor 1: ");
+        if (sht_read(SHT_1_ADDR, &temp, &rh)) {
+            uart_puts("Temp: ");
+            uart_putf(temp, 2);
+            uart_puts(" RH: ");
+            uart_putf(rh, 1);
+            uart_putln("%");
+        } else {
+            uart_putln("READ ERROR");
+        }
+        last_read_1 = millis();
+    }
 }

@@ -30,7 +30,8 @@ OBJS		+= $(BINARY).o \
 			   $(BINARY)_i2c.o \
 			   $(BINARY)_realtime.o \
 			   $(BINARY)_sht.o \
-			   $(BINARY)_adc.o
+			   $(BINARY)_adc.o \
+			   $(BINARY)_spi.o
 
 
 ifeq ($(strip $(OPENCM3_DIR)),)
