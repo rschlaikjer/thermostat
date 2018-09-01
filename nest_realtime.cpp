@@ -19,8 +19,8 @@ uint64_t millis(void) {
     return _millis;
 }
 
-void sleep(int milliseconds) {
-    const uint32_t until = millis() + milliseconds;
+void n_sleep(uint64_t milliseconds) {
+    const uint64_t until = millis() + milliseconds;
     while (millis() < until);
 }
 
