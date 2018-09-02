@@ -90,7 +90,6 @@ uint8_t wifi_init() {
     m2m_periph_gpio_set_dir(M2M_PERIPH_GPIO6, 1);
 #endif
 
-
     return ret;
 }
 
