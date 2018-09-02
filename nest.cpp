@@ -23,13 +23,6 @@ static void clock_setup(void) {
     RCC_APB2ENR |= RCC_APB2ENR_SYSCFGCOMPEN;
 }
 
-
-static void gpio_setup(void) {
-    gpio_mode_setup(GPIOA, GPIO_MODE_INPUT, GPIO_PUPD_NONE, GPIO9 | GPIO10);
-}
-
-#define ADDR 0x60
-
 int _write(int file, char *ptr, int len)
 {
     int i;
@@ -126,7 +119,6 @@ void wifi_connect() {
 void nest_init() {
     clock_setup();
     systick_setup();
-    gpio_setup();
     uart_setup();
     n_i2c_setup();
     n_spi_setup();
