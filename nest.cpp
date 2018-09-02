@@ -18,10 +18,6 @@ static void clock_setup(void) {
     // Enable GPIO clocks
     rcc_periph_clock_enable(RCC_GPIOA);
     rcc_periph_clock_enable(RCC_GPIOB);
-    rcc_periph_clock_enable(RCC_GPIOC);
-
-    // Enable clock for SPI
-    rcc_periph_clock_enable(RCC_SPI1);
 
     // Enable GPIO interrupt clock
     RCC_APB2ENR |= RCC_APB2ENR_SYSCFGCOMPEN;
