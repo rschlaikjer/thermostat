@@ -16,7 +16,7 @@ STFLASH		= $(shell which st-flash)
 STYLECHECK	:= /checkpatch.pl
 STYLECHECKFLAGS	:= --no-tree -f --terse --mailback
 STYLECHECKFILES	:= $(shell find . -name '*.[ch]')
-OPT		:= -Os -g
+OPT		:= -Os
 DEBUG		:= -ggdb3
 CSTD		?= -std=c99
 
@@ -31,7 +31,9 @@ OBJS		+= $(BINARY).o \
 			   $(BINARY)_realtime.o \
 			   $(BINARY)_sht.o \
 			   $(BINARY)_adc.o \
-			   $(BINARY)_spi.o
+			   $(BINARY)_spi.o \
+			   $(BINARY)_wifi.o \
+			   $(BINARY)_wifi_firmware.o
 
 # WINC libraries
 OBJS	+= ./winc1500/socket/source/socket.o \
@@ -102,7 +104,7 @@ TGT_CFLAGS	+= $(OPT) $(CSTD) $(DEBUG)
 TGT_CFLAGS	+= $(ARCH_FLAGS)
 TGT_CFLAGS	+= -Wextra -Wshadow -Wimplicit-function-declaration
 TGT_CFLAGS	+= -Wredundant-decls -Wmissing-prototypes -Wstrict-prototypes
-TGT_CFLAGS	+= -fno-common -ffunction-sections -fdata-sections
+TGT_CFLAGS	+= -fno-common -ffunction-sections -fdata-sections -fno-threadsafe-statics
 
 ###############################################################################
 # C++ flags
@@ -110,7 +112,7 @@ TGT_CFLAGS	+= -fno-common -ffunction-sections -fdata-sections
 TGT_CXXFLAGS	+= $(OPT) $(CXXSTD) $(DEBUG)
 TGT_CXXFLAGS	+= $(ARCH_FLAGS)
 TGT_CXXFLAGS	+= -Wextra -Wshadow -Wredundant-decls  -Weffc++
-TGT_CXXFLAGS	+= -fno-common -ffunction-sections -fdata-sections
+TGT_CXXFLAGS	+= -fno-common -ffunction-sections -fdata-sections -fno-threadsafe-statics
 
 ###############################################################################
 # C & C++ preprocessor common flags
