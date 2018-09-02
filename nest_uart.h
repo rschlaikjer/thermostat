@@ -13,6 +13,9 @@
 const uint32_t NEST_UART = USART2;
 extern "C" {
 void uart_setup(void);
+void uart_putc(char c);
+uint16_t uart_getc(void);
+void uart_write(const uint8_t *buf, size_t len);
 void uart_puts(const char *string);
 void uart_putln(const char *string);
 void uart_putd(size_t i);
@@ -22,6 +25,9 @@ void uart_putx(size_t i);
 void uart_putd(ssize_t i);
 #else
 void uart_setup(void);
+void uart_putc(char c);
+uint16_t uart_getc(void);
+void uart_write(const uint8_t *buf, size_t len);
 void uart_puts(const char *string);
 void uart_putln(const char *string);
 void uart_putd(size_t i);

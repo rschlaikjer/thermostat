@@ -4,7 +4,7 @@ void uart_setup() {
     // Enable clocks for UART
     rcc_periph_clock_enable(RCC_USART2);
 
-    // Setup TX pin as alternate function
+    // Setup USART pins as alternate function
     gpio_mode_setup(GPIOA, GPIO_MODE_AF, GPIO_PUPD_NONE, GPIO2 | GPIO3);
     gpio_set_af(GPIOA, GPIO_AF1, GPIO2 | GPIO3);
 
@@ -13,7 +13,7 @@ void uart_setup() {
     usart_set_databits(NEST_UART, 8);
     usart_set_parity(NEST_UART, USART_PARITY_NONE);
     usart_set_stopbits(NEST_UART, USART_CR2_STOPBITS_1);
-    usart_set_mode(NEST_UART, USART_MODE_TX);
+    usart_set_mode(NEST_UART, USART_MODE_TX_RX);
     usart_set_flow_control(NEST_UART, USART_FLOWCONTROL_NONE);
 
     // Finally enable the USART
@@ -26,10 +26,20 @@ void uart_putc(char c) {
     usart_send_blocking(NEST_UART, c);
 }
 
+uint16_t uart_getc() {
+    return usart_recv_blocking(NEST_UART);
+}
+
 void uart_puts(const char *string) {
     while (*string) {
         uart_putc(string[0]);
         string++;
+    }
+}
+
+void uart_write(const uint8_t *buf, size_t len) {
+    for (size_t i = 0; i < len; i++) {
+        uart_putc(buf[i]);
     }
 }
 
