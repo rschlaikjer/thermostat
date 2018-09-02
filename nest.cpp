@@ -105,9 +105,8 @@ uint8_t wifi_init() {
 }
 
 void wifi_connect() {
-    const char *ssid = "";
-    const char *psk = "";
-    if (m2m_wifi_connect((char*)ssid, strlen(ssid), M2M_WIFI_SEC_WPA_PSK, (void*)psk, M2M_WIFI_CH_ALL) < 0) {
+    if (m2m_wifi_connect((char*) N_SECRET_WIFI_SSID, strlen(N_SECRET_WIFI_SSID),
+                M2M_WIFI_SEC_WPA_PSK, (void*)N_SECRET_WIFI_PSK, M2M_WIFI_CH_ALL) < 0) {
         // failed
         m2m_periph_gpio_set_val(M2M_PERIPH_GPIO6, 0);
         return;

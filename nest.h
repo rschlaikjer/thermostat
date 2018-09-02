@@ -17,6 +17,7 @@
 #include "nest_adc.h"
 #include "nest_spi.h"
 #include "nest_wifi.h"
+#include "nest_secrets.h"
 
 void nest_init(void);
 
