@@ -17,6 +17,7 @@ uint16_t gWincENPin = GPIO11;
 static tpfNmBspIsr gpfIsr;
 
 void exti4_15_isr(void) {
+    M2M_PRINT("ISR!\r\n");
     if (exti_get_flag_status(gWincIntPin)) {
         exti_reset_request(gWincIntPin);
         if (gpfIsr) {
@@ -48,8 +49,7 @@ static void init_chip_pins(void) {
     gpio_set(gWincCSPort, gWincCSPin);
 }
 
-static void deinit_chip_pins(void)
-{
+static void deinit_chip_pins(void) {
     // Deinit reset pin
     gpio_clear(gWincResetPort, gWincResetPin);
     gpio_mode_setup(gWincResetPort, GPIO_MODE_INPUT, GPIO_PUPD_NONE, gWincResetPin);
@@ -67,6 +67,7 @@ static void deinit_chip_pins(void)
  *	@version	1.0
  */
 sint8 nm_bsp_init(void) {
+
 	gpfIsr = NULL;
 
 	init_chip_pins();
@@ -84,10 +85,8 @@ sint8 nm_bsp_init(void) {
  *	@date	11 July 2012
  *	@version	1.0
  */
-sint8 nm_bsp_deinit(void)
-{
+sint8 nm_bsp_deinit(void) {
 	deinit_chip_pins();
-
 	return M2M_SUCCESS;
 }
 

@@ -3,20 +3,24 @@
  * If not defined the following defaults are used:
  *   WINC1501_SPI    - SPI
  */
-#if !defined(WINC1501_SPI)
-  #define WINC1501_SPI SPI2
-#endif
 
-#include "bsp/include/nm_bsp.h"
-#include "bsp/include/nm_bsp_opencm3.h"
-#include "common/include/nm_common.h"
-#include "bus_wrapper/include/nm_bus_wrapper.h"
-
-#define NM_BUS_MAX_TRX_SZ   256
+#include "bus_wrapper/include/nm_bus_wrapper_opencm3.h"
 
 tstrNmBusCapabilities egstrNmBusCapabilities = {
     NM_BUS_MAX_TRX_SZ
 };
+
+uint8_t spi_xfer8(uint8_t write) {
+    // Write the data
+    while (!(SPI_SR(NEST_SPI) & SPI_SR_TXE));
+    SPI_DR8(NEST_SPI) = write;
+
+    // Read a response
+    while (!(SPI_SR(NEST_SPI) & SPI_SR_RXNE));
+    uint8_t r =  SPI_DR8(NEST_SPI);
+
+    return r;
+}
 
 static int8_t spi_rw(uint8_t* pu8Mosi, uint8_t* pu8Miso, uint16_t u16Sz) {
     uint8_t u8Dummy = 0;
@@ -34,11 +38,10 @@ static int8_t spi_rw(uint8_t* pu8Mosi, uint8_t* pu8Miso, uint16_t u16Sz) {
         return M2M_ERR_BUS_FAIL;
     }
 
-
     gpio_clear(gWincCSPort, gWincCSPin);
 
     while (u16Sz) {
-        *pu8Miso = spi_xfer(WINC1501_SPI, *pu8Mosi);
+        *pu8Miso = spi_xfer8(*pu8Mosi);
 
         u16Sz--;
         if (!u8SkipMiso)
