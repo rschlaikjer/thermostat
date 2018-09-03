@@ -1,20 +1,5 @@
 #include "nest_wifi.h"
 
-uint32_t _resolve;
-wl_status_t _status;
-wl_mode_t _mode;
-int _dhcp;
-uint32_t _localip;
-uint32_t _submask;
-uint32_t _gateway;
-
-char _ssid[M2M_MAX_SSID_LEN];
-uint8_t *_remoteMacAddress;
-
-wl_status_t wifi_status() {
-    return _status;
-}
-
 // Callback bridges
 static void n_wifi_handle_event(uint8_t message_type, void *message_data);
 static void n_wifi_socket_cb(SOCKET sock, uint8_t message_type, void *message_data);
@@ -32,7 +17,8 @@ static void n_wifi_resolv_cb(uint8_t *host_name, uint32_t host_info) {
     Wifi.handle_resolve(host_name, host_info);
 }
 
-WifiMgr::WifiMgr() {}
+WifiMgr::WifiMgr() {
+}
 
 uint8_t WifiMgr::init() {
     // If already initialized, nothing to do
@@ -40,7 +26,7 @@ uint8_t WifiMgr::init() {
         return 0;
     }
 
-    printf("Initializing WiFi...");
+    printf("Initializing WiFi... ");
 
     // Initialize board support package
     nm_bsp_init();
@@ -116,55 +102,84 @@ uint8_t WifiMgr::connect(const char *ssid, const char *psk) {
         led_disable_error();
     }
 
+    return 0;
+}
+
+uint8_t WifiMgr::wait_for_connection() {
     const uint64_t until = millis() + 60000;
-    uart_puts("Waiting for callback...");
-    while (millis() < until && !(wifi_status() & WL_CONNECTED) && !(wifi_status() & WL_DISCONNECTED)) {
+    while (millis() < until
+            && !(connection_state() & WL_CONNECTED)
+            && !(connection_state() & WL_DISCONNECTED)) {
         m2m_wifi_handle_events(NULL);
     }
 
-    if (!(wifi_status() & WL_CONNECTED)) {
+    if (!(connection_state() & WL_CONNECTED)) {
         uart_putln("Failed connect");
-    } else {
-        m2m_wifi_get_connection_info();
-        m2m_wifi_handle_events(NULL);
+        return 1;
     }
 
+    m2m_wifi_get_connection_info();
+    m2m_wifi_handle_events(NULL);
     return 0;
 }
 
 void WifiMgr::handle_event(uint8_t message_type, void *message_data) {
     const char *msg_name = "Unknown";
-    if (is_m2m_config_cmd(message_type)) {
-        msg_name = m2_config_cmd_to_string((tenuM2mConfigCmd) message_type);
-    } else if (is_m2m_sta_cmd(message_type)) {
-        msg_name = m2_sta_cmd_to_string((tenuM2mStaCmd) message_type);
-    }
-    printf("Got wifi event 0x%x (%s), additional data %p\n", message_type, msg_name, message_data);
-
-    tstrM2mWifiStateChanged *state;
     switch (message_type) {
         case M2M_WIFI_RESP_CON_STATE_CHANGED:
             // Extra data = tstrM2mWifiStateChanged*
-            state = static_cast<tstrM2mWifiStateChanged *>(message_data);
-            printf("Wifi connection state changed to %u, error code %u\n", state->u8CurrState, state->u8ErrCode);
-            if (state->u8CurrState == M2M_WIFI_CONNECTED) {
-                led_enable_wifi();
-            } else if (state->u8CurrState == M2M_WIFI_DISCONNECTED) {
-                led_disable_wifi();
-            }
+            handle_resp_conn_state_changed(static_cast<tstrM2mWifiStateChanged *>(message_data));
             break;
         case M2M_WIFI_REQ_DHCP_CONF: // DHCP complete, payload is IP address
-            // Reinterpret extra
-            uint8_t *ip_addr = (uint8_t *)message_data;
-
-            // Store value of IP addr
-            memcpy(_ip_address, ip_addr, 4);
-
-            // Log
-            printf("Received DHCP lease %u.%u.%u.%u\n",
-                ip_addr[0], ip_addr[1], ip_addr[2], ip_addr[3]);
+            // Extra data = IP address, as 4 uint8_t
+            handle_req_dhcp_conf(static_cast<uint8_t*>(message_data));
+            break;
+        case M2M_WIFI_RESP_GET_SYS_TIME:
+            handle_resp_get_sys_time(static_cast<tstrSystemTime *>(message_data));
+            break;
+            break;
+        default:
+            if (is_m2m_config_cmd(message_type)) {
+                msg_name = m2_config_cmd_to_string((tenuM2mConfigCmd) message_type);
+            } else if (is_m2m_sta_cmd(message_type)) {
+                msg_name = m2_sta_cmd_to_string((tenuM2mStaCmd) message_type);
+            }
+            printf("Got unhandled wifi event 0x%x (%s), additional data %p\n",
+                message_type, msg_name, message_data);
             break;
     }
+}
+
+void WifiMgr::handle_resp_get_sys_time(tstrSystemTime *systime) {
+    printf("Resolved system time %04u-%02u-%02u %02u:%02u:%02u\n",
+        systime->u16Year, systime->u8Month, systime->u8Day,
+        systime->u8Hour, systime->u8Minute, systime->u8Second);
+}
+
+void WifiMgr::handle_resp_conn_state_changed(tstrM2mWifiStateChanged* new_state) {
+    printf("Wifi connection state changed to %s",
+        new_state->u8CurrState == M2M_WIFI_CONNECTED ? "connected" : "disconnected");
+    if (new_state->u8CurrState == M2M_WIFI_CONNECTED) {
+        printf("\n");
+        led_enable_wifi();
+    } else {
+        printf("Error code: %u\n", new_state->u8CurrState);
+        led_disable_wifi();
+    }
+    _connection_state = static_cast<tenuM2mConnState>(new_state->u8CurrState);
+}
+
+void WifiMgr::handle_req_dhcp_conf(uint8_t *ip_address) {
+    // Copy IP address over
+    memcpy(_ip_address, ip_address, 4);
+
+    // Log
+    printf("Received DHCP lease %u.%u.%u.%u\n",
+        ip_address[0], ip_address[1], ip_address[2], ip_address[3]);
+}
+
+tenuM2mConnState WifiMgr::connection_state() {
+    return _connection_state;
 }
 
 void WifiMgr::handle_socket_event(SOCKET sock, uint8_t message_type, void *message_data) {

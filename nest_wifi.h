@@ -43,20 +43,29 @@ class WifiMgr {
 
         uint8_t init();
         uint8_t connect(const char *ssid, const char *psk);
+        uint8_t wait_for_connection();
+        tenuM2mConnState connection_state();
 
         void handle_event(uint8_t message_type, void *message_data);
         void handle_socket_event(SOCKET sock, uint8_t message_type, void *message_data);
         void handle_resolve(uint8_t *host_name, uint32_t host_info);
     private:
         bool _initialized = false;
+        tenuM2mConnState _connection_state = M2M_WIFI_UNDEF;
         uint8_t _ip_address[4];
 
+        // Status LED management
         void led_enable_wifi();
         void led_enable_act();
         void led_enable_error();
         void led_disable_wifi();
         void led_disable_act();
         void led_disable_error();
+
+        // Individual callback handlers
+        void handle_resp_conn_state_changed(tstrM2mWifiStateChanged* new_state);
+        void handle_req_dhcp_conf(uint8_t *ip_address);
+        void handle_resp_get_sys_time(tstrSystemTime *systime);
 };
 
 bool is_m2m_config_cmd(uint8_t cmd);
