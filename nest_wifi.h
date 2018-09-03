@@ -11,6 +11,8 @@ extern "C" {
 }
 
 #include "nest_uart.h"
+#include "nest_realtime.h"
+#include "nest_secrets.h"
 
 typedef enum {
     WL_NO_SHIELD = 255,
@@ -35,7 +37,37 @@ typedef enum {
     WL_AP_MODE
 } wl_mode_t;
 
-void n_wifi_handle_event(uint8_t u8MsgType, void *pvMsg);
-wl_status_t wifi_status(void);
+class WifiMgr {
+    public:
+        WifiMgr();
+
+        uint8_t init();
+        uint8_t connect(const char *ssid, const char *psk);
+
+        void handle_event(uint8_t message_type, void *message_data);
+        void handle_socket_event(SOCKET sock, uint8_t message_type, void *message_data);
+        void handle_resolve(uint8_t *host_name, uint32_t host_info);
+    private:
+        bool _initialized = false;
+        uint8_t _ip_address[4];
+
+        void led_enable_wifi();
+        void led_enable_act();
+        void led_enable_error();
+        void led_disable_wifi();
+        void led_disable_act();
+        void led_disable_error();
+};
+
+bool is_m2m_config_cmd(uint8_t cmd);
+bool is_m2m_sta_cmd(uint8_t cmd);
+bool is_m2m_ap_cmd(uint8_t cmd);
+bool is_m2m_p2p_cmd(uint8_t cmd);
+bool is_m2m_server_cmd(uint8_t cmd);
+
+const char *m2_sta_cmd_to_string(tenuM2mStaCmd cmd);
+const char *m2_config_cmd_to_string(tenuM2mConfigCmd cmd);
+
+extern WifiMgr Wifi;
 
 #endif // NEST_WIFI_H
