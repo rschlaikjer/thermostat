@@ -4,31 +4,17 @@
 #include <string.h>
 
 extern "C" {
-#include "winc1500/socket/include/socket.h"
 #include "winc1500/driver/include/m2m_periph.h"
 #include "winc1500/driver/include/m2m_wifi.h"
 #include "winc1500/driver/include/m2m_ssl.h"
+#include "winc1500/socket/include/m2m_socket_host_if.h"
+#include "winc1500/socket/include/socket.h"
 }
 
-#include "nest_uart.h"
 #include "nest_realtime.h"
 #include "nest_secrets.h"
 
-typedef enum {
-    WL_NO_SHIELD = 255,
-    WL_IDLE_STATUS = 0,
-    WL_NO_SSID_AVAIL,
-    WL_SCAN_COMPLETED,
-    WL_CONNECTED,
-    WL_CONNECT_FAILED,
-    WL_CONNECTION_LOST,
-    WL_DISCONNECTED,
-    WL_AP_LISTENING,
-    WL_AP_CONNECTED,
-    WL_AP_FAILED,
-    WL_PROVISIONING,
-    WL_PROVISIONING_FAILED
-} wl_status_t;
+#define SOCKET_BUFFER_SIZE 1472
 
 typedef enum {
     WL_RESET_MODE = 0,
@@ -36,6 +22,28 @@ typedef enum {
     WL_PROV_MODE,
     WL_AP_MODE
 } wl_mode_t;
+
+typedef enum {
+    SOCK_STATE_INVALID,
+    SOCK_STATE_IDLE,
+    SOCK_STATE_CONNECTING,
+    SOCK_STATE_CONNECTED,
+    SOCK_STATE_BINDING,
+    SOCK_STATE_BOUND,
+    SOCK_STATE_LISTEN,
+    SOCK_STATE_LISTENING,
+    SOCK_STATE_ACCEPTED
+} wl_socket_state;
+
+typedef struct {
+    wl_socket_state state;
+    tstrSocketRecvMsg recvMsg;
+    struct {
+        uint8_t *data;
+        uint8_t *head;
+        int length;
+    } buffer;
+} wl_socket_info;
 
 class WifiMgr {
     public:
@@ -49,23 +57,36 @@ class WifiMgr {
         void handle_event(uint8_t message_type, void *message_data);
         void handle_socket_event(SOCKET sock, uint8_t message_type, void *message_data);
         void handle_resolve(uint8_t *host_name, uint32_t host_info);
+
+        void sleep_mode_enable();
+        void deep_sleep_mode_enable();
+        void sleep_mode_disable();
+
+        void led_enable_act();
+        void led_disable_act();
     private:
         bool _initialized = false;
         tenuM2mConnState _connection_state = M2M_WIFI_UNDEF;
         uint8_t _ip_address[4];
+        wl_socket_info _sockets[MAX_SOCKET];
 
         // Status LED management
         void led_enable_wifi();
-        void led_enable_act();
         void led_enable_error();
         void led_disable_wifi();
-        void led_disable_act();
         void led_disable_error();
 
         // Individual callback handlers
         void handle_resp_conn_state_changed(tstrM2mWifiStateChanged* new_state);
         void handle_req_dhcp_conf(uint8_t *ip_address);
         void handle_resp_get_sys_time(tstrSystemTime *systime);
+        void handle_resp_conn_info(tstrM2MConnInfo * message_data);
+
+        // Socket callback handlers
+        void handle_socket_recv(SOCKET sock, tstrSocketRecvMsg* message_data);
+
+        // Read received data on socket to buffer
+        uint8_t fill_recv_buffer(SOCKET sock);
 };
 
 bool is_m2m_config_cmd(uint8_t cmd);

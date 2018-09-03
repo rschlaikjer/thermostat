@@ -106,21 +106,32 @@ uint8_t WifiMgr::connect(const char *ssid, const char *psk) {
 }
 
 uint8_t WifiMgr::wait_for_connection() {
+    printf("Waiting up to 60 seconds for WiFi connection...\n");
     const uint64_t until = millis() + 60000;
-    while (millis() < until
-            && !(connection_state() & WL_CONNECTED)
-            && !(connection_state() & WL_DISCONNECTED)) {
+    while (millis() < until && connection_state() == M2M_WIFI_UNDEF) {
         m2m_wifi_handle_events(NULL);
     }
 
-    if (!(connection_state() & WL_CONNECTED)) {
-        uart_putln("Failed connect");
+    if (connection_state() != M2M_WIFI_CONNECTED) {
+        printf("Timed out waiting for connection\n");
         return 1;
     }
 
     m2m_wifi_get_connection_info();
     m2m_wifi_handle_events(NULL);
     return 0;
+}
+
+void WifiMgr::sleep_mode_enable() {
+    m2m_wifi_set_sleep_mode(M2M_PS_H_AUTOMATIC, true);
+}
+
+void WifiMgr::deep_sleep_mode_enable() {
+    m2m_wifi_set_sleep_mode(M2M_PS_DEEP_AUTOMATIC, true);
+}
+
+void WifiMgr::sleep_mode_disable() {
+    m2m_wifi_set_sleep_mode(M2M_NO_PS, false);
 }
 
 void WifiMgr::handle_event(uint8_t message_type, void *message_data) {
@@ -137,6 +148,8 @@ void WifiMgr::handle_event(uint8_t message_type, void *message_data) {
         case M2M_WIFI_RESP_GET_SYS_TIME:
             handle_resp_get_sys_time(static_cast<tstrSystemTime *>(message_data));
             break;
+        case M2M_WIFI_RESP_CONN_INFO:
+            handle_resp_conn_info(static_cast<tstrM2MConnInfo *>(message_data));
             break;
         default:
             if (is_m2m_config_cmd(message_type)) {
@@ -148,6 +161,15 @@ void WifiMgr::handle_event(uint8_t message_type, void *message_data) {
                 message_type, msg_name, message_data);
             break;
     }
+}
+
+void WifiMgr::handle_resp_conn_info(tstrM2MConnInfo *info) {
+    printf("Connection state:\nIP Address: %u.%u.%u.%u\nMAC: %02x:%02x:%02x:%02x:%02x:%02x\nRSSI: %d\n",
+        info->au8IPAddr[0], info->au8IPAddr[1], info->au8IPAddr[2], info->au8IPAddr[3],
+        info->au8MACAddress[0], info->au8MACAddress[1], info->au8MACAddress[2],
+        info->au8MACAddress[3], info->au8MACAddress[4], info->au8MACAddress[5],
+        info->s8RSSI
+    );
 }
 
 void WifiMgr::handle_resp_get_sys_time(tstrSystemTime *systime) {
@@ -183,7 +205,86 @@ tenuM2mConnState WifiMgr::connection_state() {
 }
 
 void WifiMgr::handle_socket_event(SOCKET sock, uint8_t message_type, void *message_data) {
-    printf("Got socket event 0x%x, on socket %u, additional data %p\n", message_type, sock, message_data);
+    switch(message_type) {
+        case SOCKET_MSG_BIND:
+            printf("Bound socket %d\n", sock);
+            break;
+        case SOCKET_MSG_LISTEN:
+            printf("Listen socket %d\n", sock);
+            break;
+        case SOCKET_MSG_DNS_RESOLVE:
+            printf("DNS resolv on socket %d\n", sock);
+            break;
+        case SOCKET_MSG_ACCEPT:
+            printf("Accept on socket %d\n", sock);
+            break;
+        case SOCKET_MSG_CONNECT:
+            printf("Connect on socket %d\n", sock);
+            break;
+        case SOCKET_MSG_RECV:
+        case SOCKET_MSG_RECVFROM:
+            led_enable_act();
+            handle_socket_recv(sock, static_cast<tstrSocketRecvMsg*>(message_data));
+            led_disable_act();
+            break;
+        case SOCKET_MSG_SEND:
+        case SOCKET_MSG_SENDTO:
+            // led_enable_act();
+            // led_disable_act();
+            break;
+    }
+}
+
+void WifiMgr::handle_socket_recv(SOCKET sock, tstrSocketRecvMsg *data) {
+    if (data->s16BufferSize < 0) {
+        sock_close(sock);
+        return;
+    }
+
+    if (_sockets[sock].state == SOCK_STATE_CONNECTED
+            || _sockets[sock].state == SOCK_STATE_BOUND) {
+        _sockets[sock].recvMsg.pu8Buffer = data->pu8Buffer;
+        _sockets[sock].recvMsg.s16BufferSize = data->s16BufferSize;
+        if (sock < TCP_SOCK_MAX) {
+            // TCP socket
+        }  else {
+            // UDP socket
+            // Update the remote IP addr
+            _sockets[sock].recvMsg.strRemoteAddr = data->strRemoteAddr;
+        }
+        fill_recv_buffer(sock);
+    } else {
+        // Discard
+        // hif_receive(0, NULL, 0, 1);
+    }
+}
+
+uint8_t WifiMgr::fill_recv_buffer(SOCKET sock) {
+    // If this socket doesn't have a buffer allocated, allocate one now
+    // if (_sockets[sock].buffer.data == NULL) {
+    //     _sockets[sock].buffer.data = static_cast<uint8_t*>(malloc(SOCKET_BUFFER_SIZE));
+    //     _sockets[sock].buffer.head = _sockets[sock].buffer.data;
+    //     _sockets[sock].buffer.length = 0;
+    // }
+
+    // // Read as much data as possible from the buffer
+    // int size = _sockets[sock].recvMsg.s16BufferSize;
+    // if (size > SOCKET_BUFFER_SIZE) {
+    //     size = SOCKET_BUFFER_SIZE;
+    // }
+
+    // uint8_t last_transfer = (size == _sockets[sock].recvMsg.s16BufferSize);
+    // if (hif_receive(_sockets[sock].recvMsg.pu8Buffer,
+    //                 _sockets[sock].buffer.data,
+    //                 (sint16)size, last_transfer) != M2M_SUCCESS) {
+    //     return 1;
+    // }
+
+    // _sockets[sock].buffer.head = _sockets[sock].buffer.data;
+    // _sockets[sock].buffer.length = size;
+    // _sockets[sock].recvMsg.pu8Buffer += size;
+    // _sockets[sock].recvMsg.s16BufferSize -= size;
+    return 0;
 }
 
 void WifiMgr::handle_resolve(uint8_t *host_name, uint32_t host_info) {

@@ -19,6 +19,8 @@
 #include "nest_wifi.h"
 #include "nest_secrets.h"
 
+const uint32_t *STM32F0_CHIP_ID = reinterpret_cast<uint32_t *>(0x1FFFF7AC);
+
 void nest_init(void);
 
 void nest_event_loop(void);
