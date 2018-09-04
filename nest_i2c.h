@@ -1,10 +1,11 @@
 #ifndef NEST_I2C_H
 #define NEST_I2C_H
 
-#include <libopencm3/stm32/gpio.h>
-#include <libopencm3/stm32/i2c.h>
+#include <stdio.h>
 
-#include "nest_uart.h"
+#include <libopencm3/stm32/gpio.h>
+#include <libopencm3/stm32/rcc.h>
+#include <libopencm3/stm32/i2c.h>
 
 #define NEST_I2C I2C1
 

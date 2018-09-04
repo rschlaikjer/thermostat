@@ -1,11 +1,11 @@
 #ifndef NEST_LCD_H
 #define NEST_LCD_H
 
+#include <stdio.h>
+
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/i2c.h>
-
-#include "nest_uart.h"
 
 #define NEST_I2C I2C1
 

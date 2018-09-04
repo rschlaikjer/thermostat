@@ -8,7 +8,7 @@ static UartPacket pkt;
 static uint8_t payload[MAX_PAYLOAD_SIZE];
 
 void wifi_firmware_update() {
-    uart_putln("Entering firmware update mode");
+    printf("Entering firmware update mode\n");
     wifi_firmware_setup();
     while (true) {
         wifi_firmware_loop();
@@ -18,7 +18,7 @@ void wifi_firmware_update() {
 
 void wifi_firmware_setup() {
     if (m2m_wifi_download_mode() != M2M_SUCCESS) {
-        uart_putln("Failed to put the WiFi module in download mode");
+        printf("Failed to put the WiFi module in download mode\n");
         while (true);
     }
 }
@@ -57,7 +57,7 @@ void wifi_firmware_loop() {
 
     if (pkt.command == CMD_HELLO) {
         if (pkt.address == 0x11223344 && pkt.arg1 == 0x55667788)
-            uart_puts("v10000");
+            printf("v10000");
     }
 
     if (pkt.command == CMD_MAX_PAYLOAD_SIZE) {
@@ -69,10 +69,10 @@ void wifi_firmware_loop() {
         uint32_t address = pkt.address;
         uint32_t len = pkt.arg1;
         if (spi_flash_read(payload, address, len) != M2M_SUCCESS) {
-            uart_puts("ER");
+            printf("ER");
         } else {
             uart_write(payload, len);
-            uart_puts("OK");
+            printf("OK");
         }
     }
 
@@ -80,9 +80,9 @@ void wifi_firmware_loop() {
         uint32_t address = pkt.address;
         uint32_t len = pkt.payloadLength;
         if (spi_flash_write(payload, address, len) != M2M_SUCCESS) {
-            uart_puts("ER");
+            printf("ER");
         } else {
-            uart_puts("OK");
+            printf("OK");
         }
     }
 
@@ -90,9 +90,9 @@ void wifi_firmware_loop() {
         uint32_t address = pkt.address;
         uint32_t len = pkt.arg1;
         if (spi_flash_erase(address, len) != M2M_SUCCESS) {
-            uart_puts("ER");
+            printf("ER");
         } else {
-            uart_puts("OK");
+            printf("OK");
         }
     }
 }

@@ -28,25 +28,17 @@ uint8_t sht_read(const uint8_t sensor, double *temp_c, double *rh) {
 void sht_log() {
     double temp, rh;
 
-    uart_puts("Sensor 0: ");
+    printf("Sensor 0: ");
     if (sht_read(SHT_0_ADDR, &temp, &rh)) {
-        uart_puts("Temp: ");
-        uart_putf(temp, 2);
-        uart_puts(" RH: ");
-        uart_putf(rh, 1);
-        uart_putln("%");
+        printf("Temp: %.2f, Rel humidity: %.2f%%\n", temp, rh);
     } else {
-        uart_putln("READ ERROR");
+        printf("READ ERROR\n");
     }
 
-    uart_puts("Sensor 1: ");
+    printf("Sensor 1: ");
     if (sht_read(SHT_1_ADDR, &temp, &rh)) {
-        uart_puts("Temp: ");
-        uart_putf(temp, 2);
-        uart_puts(" RH: ");
-        uart_putf(rh, 1);
-        uart_putln("%");
+        printf("Temp: %.2f, Rel humidity: %.2f%%\n", temp, rh);
     } else {
-        uart_putln("READ ERROR");
+        printf("READ ERROR\n");
     }
 }

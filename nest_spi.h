@@ -1,10 +1,11 @@
 #ifndef NEST_SPI_H
 #define NEST_SPI_H
 
-#include <libopencm3/stm32/gpio.h>
-#include <libopencm3/stm32/spi.h>
+#include <stdio.h>
 
-#include "nest_uart.h"
+#include <libopencm3/stm32/gpio.h>
+#include <libopencm3/stm32/rcc.h>
+#include <libopencm3/stm32/spi.h>
 
 #define NEST_SPI SPI2
 #define NEST_SPI_RCC RCC_SPI2

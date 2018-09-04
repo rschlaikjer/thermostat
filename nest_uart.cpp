@@ -19,110 +19,35 @@ void uart_setup() {
     // Finally enable the USART
     usart_enable(NEST_UART);
 
-    uart_putln("\r\nUART initialized");
+    printf("\r\nUART initialized\n");
+}
+
+int _write(int file, char *ptr, int len) {
+    int i;
+
+    if (file == STDOUT_FILENO || file == STDERR_FILENO) {
+        for (i = 0; i < len; i++) {
+            if (ptr[i] == '\n') {
+                usart_send_blocking(NEST_UART, '\r');
+            }
+            usart_send_blocking(NEST_UART, ptr[i]);
+        }
+        return i;
+    }
+    errno = EIO;
+    return -1;
 }
 
 void uart_putc(char c) {
-    usart_send_blocking(NEST_UART, c);
+    return usart_send_blocking(NEST_UART, c);
 }
 
 uint16_t uart_getc() {
     return usart_recv_blocking(NEST_UART);
 }
 
-void uart_puts(const char *string) {
-    while (*string) {
-        uart_putc(string[0]);
-        string++;
-    }
-}
-
 void uart_write(const uint8_t *buf, size_t len) {
     for (size_t i = 0; i < len; i++) {
         uart_putc(buf[i]);
     }
-}
-
-void uart_putln(const char *string) {
-    uart_puts(string);
-    uart_puts("\r\n");
-}
-
-char hexchr(uint8_t c) {
-    if (c < 10) {
-        return '0' + c;
-    }
-    return 'A' + (c - 10);
-}
-
-void uart_putd(ssize_t n) {
-    char buf[22] = {'0'};
-    uint8_t i = 0;
-    const bool negative = n < 0;
-
-    // Convert to number in buffer
-    do {
-        buf[i++] = n % 10 + '0';
-    } while ((n /= 10) > 0);
-
-    // If negative, print -
-    if (negative)
-        uart_putc('-');
-
-    // Write out buffer in reverse order
-    do {
-        uart_putc(buf[--i]);
-    } while (i > 0);
-}
-
-void uart_putd(size_t n) {
-    char buf[22] = {'0'};
-    uint8_t i = 0;
-
-    // Convert to number in buffer
-    do {
-        buf[i++] = n % 10 + '0';
-    } while ((n /= 10) > 0);
-
-    // Convert to number in buffer
-    do {
-        uart_putc(buf[--i]);
-    } while (i > 0);
-}
-
-void uart_putx(size_t n) {
-    char buf[22] = {'0'};
-    uint8_t i = 0;
-
-    // Convert to number in buffer
-    do {
-        const uint8_t v = n % 16;
-        buf[i++] = v > 9 ? 'A' + v - 10 : v + '0';
-    } while ((n /= 16) > 0);
-
-    // Convert to number in buffer
-    do {
-        uart_putc(buf[--i]);
-    } while (i > 0);
-}
-
-double fpow(double a, int b) {
-    double acc = a;
-    b--;
-    while (b--) {
-        acc *= a;
-    }
-    return acc;
-}
-
-void uart_putf(double n, uint8_t precision) {
-    // Extract integer part
-    const ssize_t ipart = (ssize_t) n;
-    uart_putd(ipart);
-
-    // Extract floating part
-    double fpart = n - (double) ipart;
-    uart_putc('.');
-    fpart = fpart * fpow(10, precision);
-    uart_putd((size_t) fpart);
 }

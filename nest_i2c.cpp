@@ -1,7 +1,7 @@
 #include "nest_i2c.h"
 
 void n_i2c_setup(void) {
-    uart_puts("Initializing i2c... ");
+    printf("Initializing i2c... ");
     // Ensure clock is enabled
     rcc_periph_clock_enable(RCC_I2C1);
     rcc_periph_clock_enable(RCC_GPIOB);
@@ -25,7 +25,7 @@ void n_i2c_setup(void) {
     i2c_enable_stretching(NEST_I2C);
     i2c_peripheral_enable(NEST_I2C);
 
-    uart_putln("done.");
+    printf("done.\n");
 }
 
 uint8_t n_i2c_transfer(const uint8_t address,
@@ -66,9 +66,7 @@ uint8_t n_i2c_transfer(const uint8_t address,
 
                 // If there's been a NAK, then abort
                 if (i2c_nack(NEST_I2C)) {
-                    uart_puts("NAK while trying to communicate with 0x");
-                    uart_putx(address);
-                    uart_putln("");
+                    printf("NAK while trying to communicate with 0x%02x\n", address);
                     return NEST_I2C_ERROR;
                 }
             }

@@ -223,12 +223,14 @@ void WifiMgr::handle_socket_event(SOCKET sock, uint8_t message_type, void *messa
             break;
         case SOCKET_MSG_RECV:
         case SOCKET_MSG_RECVFROM:
+            printf("Recv on socket %d\n", sock);
             led_enable_act();
             handle_socket_recv(sock, static_cast<tstrSocketRecvMsg*>(message_data));
             led_disable_act();
             break;
         case SOCKET_MSG_SEND:
         case SOCKET_MSG_SENDTO:
+            // printf("Send on socket %d\n", sock);
             // led_enable_act();
             // led_disable_act();
             break;

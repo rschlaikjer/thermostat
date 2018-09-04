@@ -1,10 +1,11 @@
 #ifndef NEST_SHT_H
 #define NEST_SHT_H
 
+#include <stdio.h>
+
 #include <libopencm3/stm32/i2c.h>
 
 #include "nest_i2c.h"
-#include "nest_uart.h"
 
 #define SHT_0_ADDR 0x44
 #define SHT_1_ADDR 0x45
