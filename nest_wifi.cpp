@@ -1,211 +1,54 @@
 #include "nest_wifi.h"
 
-// Callback bridges
-static void n_wifi_handle_event(uint8_t message_type, void *message_data);
-static void n_wifi_socket_cb(SOCKET sock, uint8_t message_type, void *message_data);
-static void n_wifi_resolv_cb(uint8_t *host_name, uint32_t host_info);
-
-static void n_wifi_handle_event(uint8_t message_type, void *message_data) {
-    Wifi.handle_event(message_type, message_data);
-}
-
-static void n_wifi_socket_cb(SOCKET sock, uint8_t message_type, void *message_data) {
-    Wifi.handle_socket_event(sock, message_type, message_data);
-}
-
-static void n_wifi_resolv_cb(uint8_t *host_name, uint32_t host_info) {
-    Wifi.handle_resolve(host_name, host_info);
-}
-
-WifiMgr::WifiMgr() {
-}
-
-uint8_t WifiMgr::init() {
-    // If already initialized, nothing to do
-    if (_initialized) {
-        return 0;
-    }
-
-    printf("Initializing WiFi... ");
-
-    // Initialize board support package
-    nm_bsp_init();
-
-    // Initialize callback
-    tstrWifiInitParam param;
-    param.pfAppWifiCb = n_wifi_handle_event;
-    int8_t ret = m2m_wifi_init(&param);
-
-    // Check inititalization succeeded
-    // If it didn't log and return error
-    if (ret != M2M_SUCCESS) {
-        printf("failed!\n");
-
-        if (ret == M2M_ERR_FW_VER_MISMATCH) {
-            printf("WiFi firmware version mismatch\n");
-        } else {
-            printf("WiFi init error: %x\n", ret);
-        }
-
-        return ret;
-    }
-
-#ifdef CONF_PERIPH
-    // Init LEDS.
-    // GPIO4 = wifi, 5 = activity, 6 = error
-    m2m_periph_gpio_set_val(M2M_PERIPH_GPIO4, 1);
-    m2m_periph_gpio_set_val(M2M_PERIPH_GPIO5, 1);
-    m2m_periph_gpio_set_val(M2M_PERIPH_GPIO6, 1);
-    m2m_periph_gpio_set_dir(M2M_PERIPH_GPIO4, 1);
-    m2m_periph_gpio_set_dir(M2M_PERIPH_GPIO5, 1);
-    m2m_periph_gpio_set_dir(M2M_PERIPH_GPIO6, 1);
-#endif
-
-    // Enable extra ciphers for firmware > 19.5.0
-    tstrM2mRev rev;
-    nm_get_firmware_info(&rev);
-    uint32_t firmware_version = M2M_MAKE_VERSION(rev.u8FirmwareMajor, rev.u8FirmwareMinor, rev.u8FirmwarePatch);
-    if (firmware_version >= M2M_MAKE_VERSION(19, 5, 0)) {
-        m2m_ssl_set_active_ciphersuites(SSL_NON_ECC_CIPHERS_AES_128 | SSL_NON_ECC_CIPHERS_AES_256);
-    }
-
-    // Initialize socket callback
-    socketInit();
-    registerSocketCallback(n_wifi_socket_cb, n_wifi_resolv_cb);
-
-    printf("success.\n");
-    _initialized = true;
-    return 0;
-}
-
-void WifiMgr::led_enable_wifi() { m2m_periph_gpio_set_val(M2M_PERIPH_GPIO4, 0); }
-void WifiMgr::led_enable_act() { m2m_periph_gpio_set_val(M2M_PERIPH_GPIO5, 0); }
-void WifiMgr::led_enable_error() { m2m_periph_gpio_set_val(M2M_PERIPH_GPIO6, 0); }
-void WifiMgr::led_disable_wifi() { m2m_periph_gpio_set_val(M2M_PERIPH_GPIO4, 1); }
-void WifiMgr::led_disable_act() { m2m_periph_gpio_set_val(M2M_PERIPH_GPIO5, 1); }
-void WifiMgr::led_disable_error() { m2m_periph_gpio_set_val(M2M_PERIPH_GPIO6, 1); }
-
-uint8_t WifiMgr::connect(const char *ssid, const char *psk) {
-    // Begin WPA2 connection
-    printf("Connecting to SSID '%s'\n", ssid);
-    int ret = m2m_wifi_connect(
-        (char *)ssid, strlen(ssid),
-        M2M_WIFI_SEC_WPA_PSK,
-        (void *)psk,
-        M2M_WIFI_CH_ALL
-    );
-    if (ret) {
-        printf("Failed to connect: 0x%x\n", ret);
-        led_enable_error();
-        return ret;
-    } else {
-        led_disable_error();
-    }
-
-    return 0;
-}
-
-uint8_t WifiMgr::wait_for_connection() {
-    printf("Waiting up to 60 seconds for WiFi connection...\n");
-    const uint64_t until = millis() + 60000;
-    while (millis() < until && connection_state() == M2M_WIFI_UNDEF) {
-        m2m_wifi_handle_events(NULL);
-    }
-
-    if (connection_state() != M2M_WIFI_CONNECTED) {
-        printf("Timed out waiting for connection\n");
-        return 1;
-    }
-
-    m2m_wifi_get_connection_info();
+// Handle any events that need doing
+void WifiFsm::event_loop() {
+    // Process any pending events in the driver
     m2m_wifi_handle_events(NULL);
-    return 0;
+
+    // Ensure we're connected to wifi
+    ensure_wifi_connected();
+
+    // Make sure that our socket exists
+    ensure_socket_connected();
+
+    // Check if we need to send a heartbeat
+    check_and_send_heartbeat();
+
+    // Handle any received data
+    process_received_data();
 }
 
-void WifiMgr::sleep_mode_enable() {
-    m2m_wifi_set_sleep_mode(M2M_PS_H_AUTOMATIC, true);
-}
-
-void WifiMgr::deep_sleep_mode_enable() {
-    m2m_wifi_set_sleep_mode(M2M_PS_DEEP_AUTOMATIC, true);
-}
-
-void WifiMgr::sleep_mode_disable() {
-    m2m_wifi_set_sleep_mode(M2M_NO_PS, false);
-}
-
-void WifiMgr::handle_event(uint8_t message_type, void *message_data) {
-    const char *msg_name = "Unknown";
-    switch (message_type) {
-        case M2M_WIFI_RESP_CON_STATE_CHANGED:
-            // Extra data = tstrM2mWifiStateChanged*
-            handle_resp_conn_state_changed(static_cast<tstrM2mWifiStateChanged *>(message_data));
-            break;
-        case M2M_WIFI_REQ_DHCP_CONF: // DHCP complete, payload is IP address
-            // Extra data = IP address, as 4 uint8_t
-            handle_req_dhcp_conf(static_cast<uint8_t*>(message_data));
-            break;
-        case M2M_WIFI_RESP_GET_SYS_TIME:
-            handle_resp_get_sys_time(static_cast<tstrSystemTime *>(message_data));
-            break;
-        case M2M_WIFI_RESP_CONN_INFO:
-            handle_resp_conn_info(static_cast<tstrM2MConnInfo *>(message_data));
-            break;
-        default:
-            if (is_m2m_config_cmd(message_type)) {
-                msg_name = m2_config_cmd_to_string((tenuM2mConfigCmd) message_type);
-            } else if (is_m2m_sta_cmd(message_type)) {
-                msg_name = m2_sta_cmd_to_string((tenuM2mStaCmd) message_type);
-            }
-            printf("Got unhandled wifi event 0x%x (%s), additional data %p\n",
-                message_type, msg_name, message_data);
-            break;
+void WifiFsm::ensure_wifi_connected() {
+    // Check if we're connected
+    if (Wifi.connection_state() == M2M_WIFI_CONNECTED) {
+        // All good
+        return;
     }
-}
 
-void WifiMgr::handle_resp_conn_info(tstrM2MConnInfo *info) {
-    printf("Connection state:\nIP Address: %u.%u.%u.%u\nMAC: %02x:%02x:%02x:%02x:%02x:%02x\nRSSI: %d\n",
-        info->au8IPAddr[0], info->au8IPAddr[1], info->au8IPAddr[2], info->au8IPAddr[3],
-        info->au8MACAddress[0], info->au8MACAddress[1], info->au8MACAddress[2],
-        info->au8MACAddress[3], info->au8MACAddress[4], info->au8MACAddress[5],
-        info->s8RSSI
-    );
-}
+    // If we aren't check how long it's been since we last tried to connect
+    const uint64_t time_since_last_connect = millis() - _last_wifi_connect_start;
 
-void WifiMgr::handle_resp_get_sys_time(tstrSystemTime *systime) {
-    printf("Resolved system time %04u-%02u-%02u %02u:%02u:%02u\n",
-        systime->u16Year, systime->u8Month, systime->u8Day,
-        systime->u8Hour, systime->u8Minute, systime->u8Second);
-}
-
-void WifiMgr::handle_resp_conn_state_changed(tstrM2mWifiStateChanged* new_state) {
-    printf("Wifi connection state changed to %s",
-        new_state->u8CurrState == M2M_WIFI_CONNECTED ? "connected" : "disconnected");
-    if (new_state->u8CurrState == M2M_WIFI_CONNECTED) {
-        printf("\n");
-        led_enable_wifi();
-    } else {
-        printf("Error code: %u\n", new_state->u8CurrState);
-        led_disable_wifi();
+    // If we're still in a connect cooldown, come back later
+    if (time_since_last_connect < RECONNECT_DELAY_MS) {
+        return;
     }
-    _connection_state = static_cast<tenuM2mConnState>(new_state->u8CurrState);
+
+    // If we're not, initiate another connect request
+    Wifi.connect(N_SECRET_WIFI_SSID, N_SECRET_WIFI_PSK);
+    _last_wifi_connect_start = millis();
 }
 
-void WifiMgr::handle_req_dhcp_conf(uint8_t *ip_address) {
-    // Copy IP address over
-    memcpy(_ip_address, ip_address, 4);
+void WifiFsm::socket_cb(SOCKET sock, uint8_t evt, void *evt_data) {
+    // If this data isn't for us, ignore
+    if (_sock != sock) {
+        printf("Got unexpected event for socket %d (expected %d)\n", sock, _sock);
+        return;
+    }
 
-    // Log
-    printf("Received DHCP lease %u.%u.%u.%u\n",
-        ip_address[0], ip_address[1], ip_address[2], ip_address[3]);
-}
+    // Connect data
+    tstrSocketConnectMsg* connect_status;
 
-tenuM2mConnState WifiMgr::connection_state() {
-    return _connection_state;
-}
-
-void WifiMgr::handle_socket_event(SOCKET sock, uint8_t message_type, void *message_data) {
-    switch(message_type) {
+    switch (evt) {
         case SOCKET_MSG_BIND:
             printf("Bound socket %d\n", sock);
             break;
@@ -219,150 +62,200 @@ void WifiMgr::handle_socket_event(SOCKET sock, uint8_t message_type, void *messa
             printf("Accept on socket %d\n", sock);
             break;
         case SOCKET_MSG_CONNECT:
-            printf("Connect on socket %d\n", sock);
+            connect_status = (tstrSocketConnectMsg *) evt_data;
+            if (connect_status->s8Error == SOCK_ERR_NO_ERROR) {
+                // Mark socket as bound
+                _sock_bound = true;
+
+                // Send a hello
+                send_hello();
+            } else {
+                // Failed to bind, reset binding state so we try again
+                printf("Failed to bind socket %d: %s\n", sock,
+                    socket_error_str(connect_status->s8Error));
+                _sock_bound = false;
+                _sock_is_binding = false;
+            }
             break;
         case SOCKET_MSG_RECV:
         case SOCKET_MSG_RECVFROM:
             printf("Recv on socket %d\n", sock);
-            led_enable_act();
-            handle_socket_recv(sock, static_cast<tstrSocketRecvMsg*>(message_data));
-            led_disable_act();
             break;
         case SOCKET_MSG_SEND:
         case SOCKET_MSG_SENDTO:
             // printf("Send on socket %d\n", sock);
-            // led_enable_act();
-            // led_disable_act();
             break;
     }
 }
 
-void WifiMgr::handle_socket_recv(SOCKET sock, tstrSocketRecvMsg *data) {
-    if (data->s16BufferSize < 0) {
-        sock_close(sock);
+void WifiFsm::ensure_socket_connected() {
+    // If our socket is non-zero, all good
+    if (_sock >= 0 && _sock_bound) {
         return;
     }
 
-    if (_sockets[sock].state == SOCK_STATE_CONNECTED
-            || _sockets[sock].state == SOCK_STATE_BOUND) {
-        _sockets[sock].recvMsg.pu8Buffer = data->pu8Buffer;
-        _sockets[sock].recvMsg.s16BufferSize = data->s16BufferSize;
-        if (sock < TCP_SOCK_MAX) {
-            // TCP socket
-        }  else {
-            // UDP socket
-            // Update the remote IP addr
-            _sockets[sock].recvMsg.strRemoteAddr = data->strRemoteAddr;
+    // If we're not connected to wifi, can't make a socket yet
+    if (Wifi.connection_state() != M2M_WIFI_CONNECTED
+            || !Wifi.has_ip_address()) {
+        return;
+    }
+
+    // If we don't have a socket, make that
+    if (_sock < 0) {
+        _sock = socket(AF_INET, SOCK_STREAM, 0);
+        _sock_bound = false;
+        _sock_is_binding = false;
+        if (_sock < 0) {
+            // Error creating socket
+            printf("Failed to create socket: %s\n", socket_error_str(_sock));
+            return;
         }
-        fill_recv_buffer(sock);
-    } else {
-        // Discard
-        // hif_receive(0, NULL, 0, 1);
+
+        // Register ourselves with the wifi manager for socket callbacks
+        Wifi.register_socket_handler(_sock, this);
+    }
+
+    // Initiate a connection on the socket, if we're not bound yet
+    if (!_sock_bound && !_sock_is_binding) {
+        struct sockaddr_in addr;
+        addr.sin_family = AF_INET;
+        addr.sin_port = _htons(N_SECRET_SERVER_PORT);
+        addr.sin_addr.s_addr = _htonl(N_SECRET_SERVER_IP);
+        sint8 err = connect(_sock, (struct sockaddr *)&addr, sizeof(addr));
+
+        // Check if we got a connection error
+        if (err < 0) {
+            printf("Failed to connect socket: %s\n", socket_error_str(err));
+            sock_close(_sock);
+            _sock = -1;
+            return;
+        } else {
+            // Set the sock bind state to in-progress
+            _sock_is_binding = true;
+        }
     }
 }
 
-uint8_t WifiMgr::fill_recv_buffer(SOCKET sock) {
-    // If this socket doesn't have a buffer allocated, allocate one now
-    // if (_sockets[sock].buffer.data == NULL) {
-    //     _sockets[sock].buffer.data = static_cast<uint8_t*>(malloc(SOCKET_BUFFER_SIZE));
-    //     _sockets[sock].buffer.head = _sockets[sock].buffer.data;
-    //     _sockets[sock].buffer.length = 0;
-    // }
-
-    // // Read as much data as possible from the buffer
-    // int size = _sockets[sock].recvMsg.s16BufferSize;
-    // if (size > SOCKET_BUFFER_SIZE) {
-    //     size = SOCKET_BUFFER_SIZE;
-    // }
-
-    // uint8_t last_transfer = (size == _sockets[sock].recvMsg.s16BufferSize);
-    // if (hif_receive(_sockets[sock].recvMsg.pu8Buffer,
-    //                 _sockets[sock].buffer.data,
-    //                 (sint16)size, last_transfer) != M2M_SUCCESS) {
-    //     return 1;
-    // }
-
-    // _sockets[sock].buffer.head = _sockets[sock].buffer.data;
-    // _sockets[sock].buffer.length = size;
-    // _sockets[sock].recvMsg.pu8Buffer += size;
-    // _sockets[sock].recvMsg.s16BufferSize -= size;
-    return 0;
+uint32_t ip_addr(uint8_t ip_0, uint8_t ip_1, uint8_t ip_2, uint8_t ip_3) {
+    return ip_0 << 24 | ip_1 << 16 | ip_2 << 8 | ip_3;
 }
 
-void WifiMgr::handle_resolve(uint8_t *host_name, uint32_t host_info) {
-    printf("Resolved host %s, info %lu\n", host_name, host_info);
-}
-
-bool is_m2m_config_cmd(uint8_t cmd) { return cmd >= M2M_CONFIG_CMD_BASE && cmd < M2M_WIFI_MAX_CONFIG_ALL; }
-bool is_m2m_sta_cmd(uint8_t cmd) { return cmd >= M2M_STA_CMD_BASE&& cmd < M2M_WIFI_MAX_STA_ALL;}
-bool is_m2m_ap_cmd(uint8_t cmd) { return cmd >= M2M_AP_CMD_BASE&& cmd < M2M_WIFI_MAX_AP_ALL;}
-bool is_m2m_p2p_cmd(uint8_t cmd) { return cmd >= M2M_P2P_CMD_BASE&& cmd < M2M_WIFI_MAX_P2P_ALL;}
-bool is_m2m_server_cmd(uint8_t cmd) { return cmd >= M2M_SERVER_CMD_BASE && cmd < M2M_WIFI_MAX_SERVER_ALL;}
-
-const char *m2_config_cmd_to_string(tenuM2mConfigCmd cmd) {
-    switch (cmd) {
-        case M2M_WIFI_REQ_RESTART: return "M2M_WIFI_REQ_RESTART";
-        case M2M_WIFI_REQ_SET_MAC_ADDRESS: return "M2M_WIFI_REQ_SET_MAC_ADDRESS";
-        case M2M_WIFI_REQ_CURRENT_RSSI: return "M2M_WIFI_REQ_CURRENT_RSSI";
-        case M2M_WIFI_RESP_CURRENT_RSSI: return "M2M_WIFI_RESP_CURRENT_RSSI";
-        case M2M_WIFI_REQ_GET_CONN_INFO: return "M2M_WIFI_REQ_GET_CONN_INFO";
-        case M2M_WIFI_RESP_CONN_INFO: return "M2M_WIFI_RESP_CONN_INFO";
-        case M2M_WIFI_REQ_SET_DEVICE_NAME: return "M2M_WIFI_REQ_SET_DEVICE_NAME";
-        case M2M_WIFI_REQ_START_PROVISION_MODE: return "M2M_WIFI_REQ_START_PROVISION_MODE";
-        case M2M_WIFI_RESP_PROVISION_INFO: return "M2M_WIFI_RESP_PROVISION_INFO";
-        case M2M_WIFI_REQ_STOP_PROVISION_MODE: return "M2M_WIFI_REQ_STOP_PROVISION_MODE";
-        case M2M_WIFI_REQ_SET_SYS_TIME: return "M2M_WIFI_REQ_SET_SYS_TIME";
-        case M2M_WIFI_REQ_ENABLE_SNTP_CLIENT: return "M2M_WIFI_REQ_ENABLE_SNTP_CLIENT";
-        case M2M_WIFI_REQ_DISABLE_SNTP_CLIENT: return "M2M_WIFI_REQ_DISABLE_SNTP_CLIENT";
-        case M2M_WIFI_RESP_MEMORY_RECOVER: return "M2M_WIFI_RESP_MEMORY_RECOVER";
-        case M2M_WIFI_REQ_CUST_INFO_ELEMENT: return "M2M_WIFI_REQ_CUST_INFO_ELEMENT";
-        case M2M_WIFI_REQ_SCAN: return "M2M_WIFI_REQ_SCAN";
-        case M2M_WIFI_RESP_SCAN_DONE: return "M2M_WIFI_RESP_SCAN_DONE";
-        case M2M_WIFI_REQ_SCAN_RESULT: return "M2M_WIFI_REQ_SCAN_RESULT";
-        case M2M_WIFI_RESP_SCAN_RESULT: return "M2M_WIFI_RESP_SCAN_RESULT";
-        case M2M_WIFI_REQ_SET_SCAN_OPTION: return "M2M_WIFI_REQ_SET_SCAN_OPTION";
-        case M2M_WIFI_REQ_SET_SCAN_REGION: return "M2M_WIFI_REQ_SET_SCAN_REGION";
-        case M2M_WIFI_REQ_SET_POWER_PROFILE: return "M2M_WIFI_REQ_SET_POWER_PROFILE";
-        case M2M_WIFI_REQ_SET_TX_POWER: return "M2M_WIFI_REQ_SET_TX_POWER";
-        case M2M_WIFI_REQ_SET_BATTERY_VOLTAGE: return "M2M_WIFI_REQ_SET_BATTERY_VOLTAGE";
-        case M2M_WIFI_REQ_SET_ENABLE_LOGS: return "M2M_WIFI_REQ_SET_ENABLE_LOGS";
-        case M2M_WIFI_REQ_GET_SYS_TIME: return "M2M_WIFI_REQ_GET_SYS_TIME";
-        case M2M_WIFI_RESP_GET_SYS_TIME: return "M2M_WIFI_RESP_GET_SYS_TIME";
-        case M2M_WIFI_REQ_SEND_ETHERNET_PACKET: return "M2M_WIFI_REQ_SEND_ETHERNET_PACKET";
-        case M2M_WIFI_RESP_ETHERNET_RX_PACKET: return "M2M_WIFI_RESP_ETHERNET_RX_PACKET";
-        case M2M_WIFI_REQ_SET_MAC_MCAST: return "M2M_WIFI_REQ_SET_MAC_MCAST";
-        case M2M_WIFI_REQ_GET_PRNG: return "M2M_WIFI_REQ_GET_PRNG";
-        case M2M_WIFI_RESP_GET_PRNG: return "M2M_WIFI_RESP_GET_PRNG";
-        case M2M_WIFI_REQ_SCAN_SSID_LIST: return "M2M_WIFI_REQ_SCAN_SSID_LIST";
-        case M2M_WIFI_REQ_SET_GAINS: return "M2M_WIFI_REQ_SET_GAINS";
-        case M2M_WIFI_REQ_PASSIVE_SCAN: return "M2M_WIFI_REQ_PASSIVE_SCAN";
-        default: return "M2M_UNKNOWN";
+const char* socket_error_str(int error) {
+    switch (error) {
+        case SOCK_ERR_NO_ERROR: return "SOCK_ERR_NO_ERROR";
+        case SOCK_ERR_INVALID_ADDRESS: return "SOCK_ERR_INVALID_ADDRESS";
+        case SOCK_ERR_ADDR_ALREADY_IN_USE: return "SOCK_ERR_ADDR_ALREADY_IN_USE";
+        case SOCK_ERR_MAX_TCP_SOCK: return "SOCK_ERR_MAX_TCP_SOCK";
+        case SOCK_ERR_MAX_UDP_SOCK: return "SOCK_ERR_MAX_UDP_SOCK";
+        case SOCK_ERR_INVALID_ARG: return "SOCK_ERR_INVALID_ARG";
+        case SOCK_ERR_MAX_LISTEN_SOCK: return "SOCK_ERR_MAX_LISTEN_SOCK";
+        case SOCK_ERR_INVALID: return "SOCK_ERR_INVALID";
+        case SOCK_ERR_ADDR_IS_REQUIRED: return "SOCK_ERR_ADDR_IS_REQUIRED";
+        case SOCK_ERR_CONN_ABORTED: return "SOCK_ERR_CONN_ABORTED";
+        case SOCK_ERR_TIMEOUT: return "SOCK_ERR_TIMEOUT";
+        case SOCK_ERR_BUFFER_FULL: return "SOCK_ERR_BUFFER_FULL";
+        default: return "SOCK_ERROR_UNKNOWN";
     }
 }
 
-const char *m2_sta_cmd_to_string(tenuM2mStaCmd cmd) {
-    switch (cmd) {
-        case M2M_WIFI_REQ_CONNECT: return "M2M_WIFI_REQ_CONNECT";
-        case M2M_WIFI_REQ_DEFAULT_CONNECT: return "M2M_WIFI_REQ_DEFAULT_CONNECT";
-        case M2M_WIFI_RESP_DEFAULT_CONNECT: return "M2M_WIFI_RESP_DEFAULT_CONNECT";
-        case M2M_WIFI_REQ_DISCONNECT: return "M2M_WIFI_REQ_DISCONNECT";
-        case M2M_WIFI_RESP_CON_STATE_CHANGED: return "M2M_WIFI_RESP_CON_STATE_CHANGED";
-        case M2M_WIFI_REQ_SLEEP: return "M2M_WIFI_REQ_SLEEP";
-        case M2M_WIFI_REQ_WPS_SCAN: return "M2M_WIFI_REQ_WPS_SCAN";
-        case M2M_WIFI_REQ_WPS: return "M2M_WIFI_REQ_WPS";
-        case M2M_WIFI_REQ_START_WPS: return "M2M_WIFI_REQ_START_WPS";
-        case M2M_WIFI_REQ_DISABLE_WPS: return "M2M_WIFI_REQ_DISABLE_WPS";
-        case M2M_WIFI_REQ_DHCP_CONF: return "M2M_WIFI_REQ_DHCP_CONF";
-        case M2M_WIFI_RESP_IP_CONFIGURED: return "M2M_WIFI_RESP_IP_CONFIGURED";
-        case M2M_WIFI_RESP_IP_CONFLICT: return "M2M_WIFI_RESP_IP_CONFLICT";
-        case M2M_WIFI_REQ_ENABLE_MONITORING: return "M2M_WIFI_REQ_ENABLE_MONITORING";
-        case M2M_WIFI_REQ_DISABLE_MONITORING: return "M2M_WIFI_REQ_DISABLE_MONITORING";
-        case M2M_WIFI_RESP_WIFI_RX_PACKET: return "M2M_WIFI_RESP_WIFI_RX_PACKET";
-        case M2M_WIFI_REQ_SEND_WIFI_PACKET: return "M2M_WIFI_REQ_SEND_WIFI_PACKET";
-        case M2M_WIFI_REQ_LSN_INT: return "M2M_WIFI_REQ_LSN_INT";
-        case M2M_WIFI_REQ_DOZE: return "M2M_WIFI_REQ_DOZE";
-        default: return "M2M_UNKNOWN";
+void WifiFsm::send_temperature(double temp) {
+    sock_send((uint8_t) CMD_TEMP);
+    sock_send((float) temp);
+}
+
+void WifiFsm::send_rh(double rh) {
+    sock_send((uint8_t) CMD_RH);
+    sock_send((float) rh);
+}
+
+void WifiFsm::send_hello() {
+    sock_send((uint8_t) CMD_HELLO);
+    // sock_send((uint8_t) 12); // Number of bytes in ID
+    // sock_send(reinterpret_cast<uint8_t*>(STM32F0_UUID_ADDR), 12);
+    sock_send(reinterpret_cast<uint8_t*>(STM32F0_UUID_ADDR), 10);
+}
+
+void WifiFsm::sock_send(float v) {
+    unsigned char *v_bytes = (unsigned char*) &v;
+    sock_send(v_bytes, sizeof(float));
+}
+
+void WifiFsm::sock_send(double v) {
+    unsigned char *v_bytes = (unsigned char*) &v;
+    sock_send(v_bytes, sizeof(double));
+}
+
+void WifiFsm::sock_send(uint32_t v) {
+    sock_send(reinterpret_cast<uint8_t*>(&v), sizeof(uint32_t));
+}
+
+void WifiFsm::sock_send(uint8_t c) {
+    sock_send(&c, 1);
+}
+
+void WifiFsm::sock_send(uint8_t *data, size_t bytes) {
+    // If the socket isn't connected, just drop data
+    if ( _sock < 0) {
+        printf("Socket down, dropping data\n");
+        return;
+    }
+
+    int16_t ret = send(_sock, data, bytes, 0); // Flags field unused
+    if (ret < 0) {
+        printf("Failed to send data: %s\n", socket_error_str(ret));
+        reset_socket();
     }
 }
 
-WifiMgr Wifi;
+void WifiFsm::reset_socket() {
+    if (_sock >= 0) {
+        Wifi.unregister_socket_handler(_sock, this);
+        sock_close(_sock);
+    }
+    _sock = -1;
+}
+
+void WifiFsm::check_and_send_heartbeat() {}
+void WifiFsm::process_received_data() {}
+
+/*
+    if (millis() - last_packet > 10000) {
+        if (sock >= 0) {
+            double temp, rh;
+            if (sht_read(SHT_0_ADDR, &temp, &rh)) {
+                Wifi.led_enable_act();
+                char payload[256];
+                sprintf(payload, "local.temp %f", temp);
+                int16_t ret = send(sock, (void *)payload, strlen(payload), 0);
+                if (ret < 0) {
+                    printf("Failed to send packet: %d\n", ret);
+                }
+                sprintf(payload, "local.rh %f", rh);
+                ret = send(sock, (void *)payload, strlen(payload), 0);
+                if (ret < 0) {
+                    printf("Failed to send packet: %d\n", ret);
+                }
+                Wifi.led_disable_act();
+                count++;
+                printf("Packet count: %llu\n", count);
+            }
+        } else if (Wifi.connection_state() == M2M_WIFI_CONNECTED) {
+            sock = socket(AF_INET, SOCK_STREAM, 0);
+            if (sock >= 0) {
+                printf("Connected socket %d\n", sock);
+                addr.sin_family = AF_INET;
+                addr.sin_port = _htons(9001);
+                // addr.sin_addr.s_addr = _htonl(ip_addr(10, 107, 130, 12));
+                addr.sin_addr.s_addr = _htonl(ip_addr(192, 168, 0, 41));
+                int ret = connect(sock, (struct sockaddr *)&addr, sizeof(addr));
+                if (ret < 0) {
+                    printf("Failed to connect sock: %d\n", ret);
+                }
+            } else {
+                printf("Failed to create socket\n");
+            }
+        }
+        last_packet = millis();
+    }
+}
+*/

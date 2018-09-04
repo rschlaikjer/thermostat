@@ -33,6 +33,7 @@ OBJS		+= $(BINARY).o \
 			   $(BINARY)_adc.o \
 			   $(BINARY)_spi.o \
 			   $(BINARY)_wifi.o \
+			   $(BINARY)_wifi_manager.o \
 			   $(BINARY)_wifi_firmware.o
 
 # WINC libraries
@@ -104,15 +105,16 @@ TGT_CFLAGS	+= $(OPT) $(CSTD) $(DEBUG)
 TGT_CFLAGS	+= $(ARCH_FLAGS)
 TGT_CFLAGS	+= -Wextra -Wshadow -Wimplicit-function-declaration
 TGT_CFLAGS	+= -Wredundant-decls -Wmissing-prototypes -Wstrict-prototypes
-TGT_CFLAGS	+= -fno-common -ffunction-sections -fdata-sections -fno-threadsafe-statics
+TGT_CFLAGS	+= -fno-common -ffunction-sections -fdata-sections
 
 ###############################################################################
 # C++ flags
 
 TGT_CXXFLAGS	+= $(OPT) $(CXXSTD) $(DEBUG)
 TGT_CXXFLAGS	+= $(ARCH_FLAGS)
-TGT_CXXFLAGS	+= -Wextra -Wshadow -Wredundant-decls  -Weffc++
+TGT_CXXFLAGS	+= -Wextra -Wshadow -Wredundant-decls -Weffc++
 TGT_CXXFLAGS	+= -fno-common -ffunction-sections -fdata-sections -fno-threadsafe-statics
+TGT_CXXFLAGS	+= -std=c++11
 
 ###############################################################################
 # C & C++ preprocessor common flags

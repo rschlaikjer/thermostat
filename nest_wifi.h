@@ -1,103 +1,53 @@
 #ifndef NEST_WIFI_H
 #define NEST_WIFI_H
 
-#include <string.h>
-
-extern "C" {
-#include "winc1500/driver/include/m2m_periph.h"
-#include "winc1500/driver/include/m2m_wifi.h"
-#include "winc1500/driver/include/m2m_ssl.h"
-#include "winc1500/socket/include/m2m_socket_host_if.h"
-#include "winc1500/socket/include/socket.h"
-}
-
 #include "nest_realtime.h"
+#include "nest_wifi_manager.h"
 #include "nest_secrets.h"
 
-#define SOCKET_BUFFER_SIZE 1472
+#define RECONNECT_DELAY_MS 60000
+
+#define STM32F0_UUID_ADDR 0x1FFFF7AC
 
 typedef enum {
-    WL_RESET_MODE = 0,
-    WL_STA_MODE,
-    WL_PROV_MODE,
-    WL_AP_MODE
-} wl_mode_t;
+    CMD_HELLO = 1,
+    CMD_TEMP,
+    CMD_LIGHT,
+    CMD_TARGET_TEMP,
+    CMD_ZONE_ACTIVE,
+    CMD_RH
+} wifi_fsm_cmd;
 
-typedef enum {
-    SOCK_STATE_INVALID,
-    SOCK_STATE_IDLE,
-    SOCK_STATE_CONNECTING,
-    SOCK_STATE_CONNECTED,
-    SOCK_STATE_BINDING,
-    SOCK_STATE_BOUND,
-    SOCK_STATE_LISTEN,
-    SOCK_STATE_LISTENING,
-    SOCK_STATE_ACCEPTED
-} wl_socket_state;
+class WifiFsm {
 
-typedef struct {
-    wl_socket_state state;
-    tstrSocketRecvMsg recvMsg;
-    struct {
-        uint8_t *data;
-        uint8_t *head;
-        int length;
-    } buffer;
-} wl_socket_info;
-
-class WifiMgr {
     public:
-        WifiMgr();
+        void event_loop();
 
-        uint8_t init();
-        uint8_t connect(const char *ssid, const char *psk);
-        uint8_t wait_for_connection();
-        tenuM2mConnState connection_state();
+        void send_temperature(double temp);
+        void send_rh(double rh);
 
-        void handle_event(uint8_t message_type, void *message_data);
-        void handle_socket_event(SOCKET sock, uint8_t message_type, void *message_data);
-        void handle_resolve(uint8_t *host_name, uint32_t host_info);
-
-        void sleep_mode_enable();
-        void deep_sleep_mode_enable();
-        void sleep_mode_disable();
-
-        void led_enable_act();
-        void led_disable_act();
+        void socket_cb(SOCKET sock, uint8_t evt, void *evt_data);
     private:
-        bool _initialized = false;
-        tenuM2mConnState _connection_state = M2M_WIFI_UNDEF;
-        uint8_t _ip_address[4];
-        wl_socket_info _sockets[MAX_SOCKET];
+        SOCKET _sock = -1;
+        bool _sock_bound = false;
+        bool _sock_is_binding = false;
+        uint64_t _last_wifi_connect_start = -RECONNECT_DELAY_MS;
 
-        // Status LED management
-        void led_enable_wifi();
-        void led_enable_error();
-        void led_disable_wifi();
-        void led_disable_error();
+        void ensure_wifi_connected();
+        void ensure_socket_connected();
+        void reset_socket();
+        void check_and_send_heartbeat();
+        void process_received_data();
 
-        // Individual callback handlers
-        void handle_resp_conn_state_changed(tstrM2mWifiStateChanged* new_state);
-        void handle_req_dhcp_conf(uint8_t *ip_address);
-        void handle_resp_get_sys_time(tstrSystemTime *systime);
-        void handle_resp_conn_info(tstrM2MConnInfo * message_data);
-
-        // Socket callback handlers
-        void handle_socket_recv(SOCKET sock, tstrSocketRecvMsg* message_data);
-
-        // Read received data on socket to buffer
-        uint8_t fill_recv_buffer(SOCKET sock);
+        void send_hello();
+        void sock_send(float v);
+        void sock_send(double v);
+        void sock_send(uint32_t v);
+        void sock_send(uint8_t c);
+        void sock_send(uint8_t *data, size_t bytes);
 };
 
-bool is_m2m_config_cmd(uint8_t cmd);
-bool is_m2m_sta_cmd(uint8_t cmd);
-bool is_m2m_ap_cmd(uint8_t cmd);
-bool is_m2m_p2p_cmd(uint8_t cmd);
-bool is_m2m_server_cmd(uint8_t cmd);
-
-const char *m2_sta_cmd_to_string(tenuM2mStaCmd cmd);
-const char *m2_config_cmd_to_string(tenuM2mConfigCmd cmd);
-
-extern WifiMgr Wifi;
+const char* socket_error_str(int error);
+uint32_t ip_addr(uint8_t ip_0, uint8_t ip_1, uint8_t ip_2, uint8_t ip_3);
 
 #endif // NEST_WIFI_H
