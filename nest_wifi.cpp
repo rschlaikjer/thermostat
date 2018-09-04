@@ -38,6 +38,21 @@ void WifiFsm::ensure_wifi_connected() {
     _last_wifi_connect_start = millis();
 }
 
+void WifiFsm::resolve_cb(uint8_t *hostname, uint32_t ip_addr) {
+    // If this isn't the hostname we wanted to resolve, ignore it
+    if (strcmp((char *)hostname, N_SECRET_SERVER_HOSTNAME) != 0) {
+        return;
+    }
+
+    // If it is, update our state
+    _resolved_hostname = true;
+    _hostname_is_resolving = false;
+    _resolved_ip = _ntohl(ip_addr);
+    printf("Resolved '%s' -> %lu.%lu.%lu.%lu\n",
+        hostname, (ip_addr >> 24), ((ip_addr >> 16) & 0xFF),
+        ((ip_addr >> 8) & 0xFF), ip_addr & 0xFF);
+}
+
 void WifiFsm::socket_cb(SOCKET sock, uint8_t evt, void *evt_data) {
     // If this data isn't for us, ignore
     if (_sock != sock) {
@@ -136,12 +151,31 @@ void WifiFsm::ensure_socket_connected() {
         Wifi.register_socket_handler(_sock, this);
     }
 
+    // Before we can connect, we need to resolve the hostname
+    if (!_resolved_hostname) {
+        if (!_hostname_is_resolving) {
+            int8_t resolv_result = gethostbyname((uint8_t*) N_SECRET_SERVER_HOSTNAME);
+            if (resolv_result < 0) {
+                printf("Failed to resolve hostname %s: %d\n",
+                    N_SECRET_SERVER_HOSTNAME, resolv_result);
+            } else {
+                _resolved_hostname = false;
+                _hostname_is_resolving = true;
+            }
+        }
+    }
+
     // Initiate a connection on the socket, if we're not bound yet
-    if (!_sock_bound && !_sock_is_binding) {
+    if (_resolved_hostname && !_sock_bound && !_sock_is_binding) {
         struct sockaddr_in addr;
         addr.sin_family = AF_INET;
         addr.sin_port = _htons(N_SECRET_SERVER_PORT);
-        addr.sin_addr.s_addr = _htonl(N_SECRET_SERVER_IP);
+        addr.sin_addr.s_addr = _htonl(_resolved_ip);
+        printf("Connecting to %lu.%lu.%lu.%lu:%u\n",
+            _resolved_ip >> 24, (_resolved_ip >> 16) & 0xFF,
+            (_resolved_ip >> 8) & 0xFF, _resolved_ip & 0xFF,
+            N_SECRET_SERVER_PORT
+        );
         sint8 err = connect(_sock, (struct sockaddr *)&addr, sizeof(addr));
 
         // Check if we got a connection error
@@ -155,10 +189,6 @@ void WifiFsm::ensure_socket_connected() {
             _sock_is_binding = true;
         }
     }
-}
-
-uint32_t ip_addr(uint8_t ip_0, uint8_t ip_1, uint8_t ip_2, uint8_t ip_3) {
-    return ip_0 << 24 | ip_1 << 16 | ip_2 << 8 | ip_3;
 }
 
 const char* socket_error_str(int error) {
@@ -187,6 +217,11 @@ void WifiFsm::send_temperature(double temp) {
 void WifiFsm::send_rh(double rh) {
     sock_send((uint8_t) CMD_RH);
     sock_send((float) rh);
+}
+
+void WifiFsm::send_brightness(uint16_t brightness) {
+    sock_send((uint8_t) CMD_LIGHT);
+    sock_send(_htonl((uint32_t) brightness));
 }
 
 void WifiFsm::send_hello() {
@@ -234,6 +269,10 @@ void WifiFsm::reset_socket() {
         sock_close(_sock);
     }
     _sock = -1;
+    _sock_bound = false;
+    _sock_is_binding = false;
+    _resolved_hostname = false;
+    _hostname_is_resolving = false;
 }
 
 void WifiFsm::check_and_send_heartbeat() {}

@@ -27,8 +27,10 @@ class WifiFsm {
 
         void send_temperature(double temp);
         void send_rh(double rh);
+        void send_brightness(uint16_t brightness);
 
         void socket_cb(SOCKET sock, uint8_t evt, void *evt_data);
+        void resolve_cb(uint8_t *hostname, uint32_t ip_addr);
     private:
         SOCKET _sock = -1;
         bool _sock_bound = false;
@@ -36,6 +38,9 @@ class WifiFsm {
         uint64_t _last_wifi_connect_start = -RECONNECT_DELAY_MS;
         uint64_t _last_recv_poll = 0;
         uint8_t _recv_buffer[RECV_BUFFER_SIZE];
+        bool _resolved_hostname = false;
+        bool _hostname_is_resolving = false;
+        uint32_t _resolved_ip;
 
         void ensure_wifi_connected();
         void ensure_socket_connected();

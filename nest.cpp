@@ -58,24 +58,15 @@ WifiFsm wifi_fsm;
 
 void nest_event_loop() {
     if (millis() - last_read_0 > READ_0_RATE_MS) {
-        // printf("Sensor 0: ");
         if (sht_read(SHT_0_ADDR, &temp, &rh)) {
-            // printf("Temp: %.2f, Rel humidity: %.2f%%\n", temp, rh);
             wifi_fsm.send_temperature(temp);
             wifi_fsm.send_rh(rh);
-        } else {
-            // printf("READ ERROR\n");
         }
+
+        uint16_t brightness = adc_read();
+        wifi_fsm.send_brightness(brightness);
+
         last_read_0 = millis();
-    }
-    if (millis() - last_read_1 > READ_1_RATE_MS) {
-        // printf("Sensor 1: ");
-        if (sht_read(SHT_1_ADDR, &temp, &rh)) {
-            //printf("Temp: %.2f, Rel humidity: %.2f%%\n", temp, rh);
-        } else {
-            //printf("READ ERROR\n");
-        }
-        last_read_1 = millis();
     }
 
     // Handle wifi events

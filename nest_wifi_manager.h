@@ -95,9 +95,6 @@ class WifiMgr {
 
         // Socket callback handlers
         void handle_socket_recv(SOCKET sock, tstrSocketRecvMsg* message_data);
-
-        // Read received data on socket to buffer
-        uint8_t fill_recv_buffer(SOCKET sock);
 };
 
 bool is_m2m_config_cmd(uint8_t cmd);

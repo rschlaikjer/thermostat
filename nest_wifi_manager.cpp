@@ -237,8 +237,6 @@ void WifiMgr::handle_socket_event(SOCKET sock, uint8_t message_type, void *messa
         case SOCKET_MSG_RECV:
         case SOCKET_MSG_RECVFROM:
             printf("Recv on socket %d\n", sock);
-            handle_socket_recv(sock, static_cast<tstrSocketRecvMsg*>(message_data));
-            led_disable_act();
             break;
         case SOCKET_MSG_SEND:
         case SOCKET_MSG_SENDTO:
@@ -266,43 +264,18 @@ void WifiMgr::handle_socket_recv(SOCKET sock, tstrSocketRecvMsg *data) {
             // Update the remote IP addr
             _sockets[sock].recvMsg.strRemoteAddr = data->strRemoteAddr;
         }
-        fill_recv_buffer(sock);
     } else {
         // Discard
         // hif_receive(0, NULL, 0, 1);
     }
 }
 
-uint8_t WifiMgr::fill_recv_buffer(SOCKET sock) {
-    // If this socket doesn't have a buffer allocated, allocate one now
-    // if (_sockets[sock].buffer.data == NULL) {
-    //     _sockets[sock].buffer.data = static_cast<uint8_t*>(malloc(SOCKET_BUFFER_SIZE));
-    //     _sockets[sock].buffer.head = _sockets[sock].buffer.data;
-    //     _sockets[sock].buffer.length = 0;
-    // }
-
-    // // Read as much data as possible from the buffer
-    // int size = _sockets[sock].recvMsg.s16BufferSize;
-    // if (size > SOCKET_BUFFER_SIZE) {
-    //     size = SOCKET_BUFFER_SIZE;
-    // }
-
-    // uint8_t last_transfer = (size == _sockets[sock].recvMsg.s16BufferSize);
-    // if (hif_receive(_sockets[sock].recvMsg.pu8Buffer,
-    //                 _sockets[sock].buffer.data,
-    //                 (sint16)size, last_transfer) != M2M_SUCCESS) {
-    //     return 1;
-    // }
-
-    // _sockets[sock].buffer.head = _sockets[sock].buffer.data;
-    // _sockets[sock].buffer.length = size;
-    // _sockets[sock].recvMsg.pu8Buffer += size;
-    // _sockets[sock].recvMsg.s16BufferSize -= size;
-    return 0;
-}
-
 void WifiMgr::handle_resolve(uint8_t *host_name, uint32_t host_info) {
-    printf("Resolved host %s, info %lu\n", host_name, host_info);
+    for (int i = 0; i < MAX_SOCKET; i++) {
+        if (_socket_handlers[i] != NULL) {
+            _socket_handlers[i]->resolve_cb(host_name, host_info);
+        }
+    }
 }
 
 bool is_m2m_config_cmd(uint8_t cmd) { return cmd >= M2M_CONFIG_CMD_BASE && cmd < M2M_WIFI_MAX_CONFIG_ALL; }
