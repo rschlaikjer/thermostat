@@ -6,6 +6,8 @@
 #include "nest_secrets.h"
 
 #define RECONNECT_DELAY_MS 60000
+#define RECV_POLL_RATE_MS 1000
+#define RECV_BUFFER_SIZE 128
 
 #define STM32F0_UUID_ADDR 0x1FFFF7AC
 
@@ -32,6 +34,8 @@ class WifiFsm {
         bool _sock_bound = false;
         bool _sock_is_binding = false;
         uint64_t _last_wifi_connect_start = -RECONNECT_DELAY_MS;
+        uint64_t _last_recv_poll = 0;
+        uint8_t _recv_buffer[RECV_BUFFER_SIZE];
 
         void ensure_wifi_connected();
         void ensure_socket_connected();

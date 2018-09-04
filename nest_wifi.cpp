@@ -47,7 +47,8 @@ void WifiFsm::socket_cb(SOCKET sock, uint8_t evt, void *evt_data) {
 
     // Connect data
     tstrSocketConnectMsg* connect_status;
-
+    tstrSocketRecvMsg* recv_msg;
+    int16_t i;
     switch (evt) {
         case SOCKET_MSG_BIND:
             printf("Bound socket %d\n", sock);
@@ -79,7 +80,27 @@ void WifiFsm::socket_cb(SOCKET sock, uint8_t evt, void *evt_data) {
             break;
         case SOCKET_MSG_RECV:
         case SOCKET_MSG_RECVFROM:
-            printf("Recv on socket %d\n", sock);
+            // printf("Recv on socket %d\n", sock);
+            recv_msg = static_cast<tstrSocketRecvMsg*>(evt_data);
+            if (recv_msg->s16BufferSize > 0) {
+                printf("Recv'd %d bytes on sock %d (remaining: %u)\n",
+                        recv_msg->s16BufferSize, sock, recv_msg->u16RemainingSize);
+                for (i = 0; i < recv_msg->s16BufferSize; i++) {
+                    printf("0x%02x ", recv_msg->pu8Buffer[i]);
+                }
+                printf("\n");
+
+                // If there's more data to be read, immediately re-schedule
+                // the recv call
+                if (recv_msg->u16RemainingSize > 0) {
+                    _last_recv_poll = 0;
+                }
+            } else if (recv_msg->s16BufferSize == SOCK_ERR_TIMEOUT) {
+                // No data to recv
+            } else {
+                printf("Failed to recv data on sock %d: %s\n",
+                        sock, socket_error_str(recv_msg->s16BufferSize));
+            }
             break;
         case SOCKET_MSG_SEND:
         case SOCKET_MSG_SENDTO:
@@ -216,46 +237,22 @@ void WifiFsm::reset_socket() {
 }
 
 void WifiFsm::check_and_send_heartbeat() {}
-void WifiFsm::process_received_data() {}
 
-/*
-    if (millis() - last_packet > 10000) {
-        if (sock >= 0) {
-            double temp, rh;
-            if (sht_read(SHT_0_ADDR, &temp, &rh)) {
-                Wifi.led_enable_act();
-                char payload[256];
-                sprintf(payload, "local.temp %f", temp);
-                int16_t ret = send(sock, (void *)payload, strlen(payload), 0);
-                if (ret < 0) {
-                    printf("Failed to send packet: %d\n", ret);
-                }
-                sprintf(payload, "local.rh %f", rh);
-                ret = send(sock, (void *)payload, strlen(payload), 0);
-                if (ret < 0) {
-                    printf("Failed to send packet: %d\n", ret);
-                }
-                Wifi.led_disable_act();
-                count++;
-                printf("Packet count: %llu\n", count);
-            }
-        } else if (Wifi.connection_state() == M2M_WIFI_CONNECTED) {
-            sock = socket(AF_INET, SOCK_STREAM, 0);
-            if (sock >= 0) {
-                printf("Connected socket %d\n", sock);
-                addr.sin_family = AF_INET;
-                addr.sin_port = _htons(9001);
-                // addr.sin_addr.s_addr = _htonl(ip_addr(10, 107, 130, 12));
-                addr.sin_addr.s_addr = _htonl(ip_addr(192, 168, 0, 41));
-                int ret = connect(sock, (struct sockaddr *)&addr, sizeof(addr));
-                if (ret < 0) {
-                    printf("Failed to connect sock: %d\n", ret);
-                }
-            } else {
-                printf("Failed to create socket\n");
-            }
-        }
-        last_packet = millis();
+void WifiFsm::process_received_data() {
+    // If socket not connected, do nothing
+    if (_sock < 0 || !_sock_bound) {
+        return;
+    }
+
+    // Only poll for recv data every now and again
+    const uint64_t time_since_last_poll = millis() - _last_recv_poll;
+    if (time_since_last_poll < RECV_POLL_RATE_MS) {
+        return;
+    }
+
+    int16_t ret = recv(_sock, _recv_buffer, 256, 100);
+    _last_recv_poll = millis();
+    if (ret < 0) {
+        printf("Failed to recv data: %s\n", socket_error_str(ret));
     }
 }
-*/
