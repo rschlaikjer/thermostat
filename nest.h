@@ -6,6 +6,7 @@
 #include <libopencm3/stm32/usart.h>
 #include <libopencm3/stm32/i2c.h>
 #include <libopencm3/stm32/dma.h>
+#include <libopencm3/stm32/iwdg.h>
 #include <libopencm3/cm3/nvic.h>
 #include <libopencm3/cm3/systick.h>
 
@@ -20,6 +21,8 @@
 #include "nest_secrets.h"
 
 const uint32_t *STM32F0_CHIP_ID = reinterpret_cast<uint32_t *>(0x1FFFF7AC);
+
+const uint32_t WATCHDOG_TIMEOUT_MS = 10000;
 
 void nest_init(void);
 

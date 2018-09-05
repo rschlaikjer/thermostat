@@ -31,17 +31,37 @@ int main(void) {
 }
 
 void nest_init() {
+    // Configure system clock
     clock_setup();
+    iwdg_reset();
+
+    // Configure and enable watchdog timer
+    iwdg_set_period_ms(WATCHDOG_TIMEOUT_MS);
+    iwdg_start();
+
+    // Enable systick to provide real-time-ish clocl
     systick_setup();
+
+    // Enable serial console
     uart_setup();
+
+    // Log if we got restarted by IWDG
+    if (RCC_CSR & RCC_CSR_IWDGRSTF) {
+        printf("Restarted by watchdog\n");
+    }
+
+    // Clear the reset cause register
+    RCC_CSR |= RCC_CSR_RMVF;
 
     printf("Unique chip ID: 0x%08lx%08lx%08lx\n",
         STM32F0_CHIP_ID[0], STM32F0_CHIP_ID[1], STM32F0_CHIP_ID[2]);
 
+    // Initialize peripherals
     n_i2c_setup();
     n_spi_setup();
     adc_setup();
 
+    // Enable wifi
     Wifi.init();
     Wifi.deep_sleep_mode_enable();
 }
@@ -71,4 +91,7 @@ void nest_event_loop() {
 
     // Handle wifi events
     wifi_fsm.event_loop();
+
+    // Tickle the watchdog
+    iwdg_reset();
 }
