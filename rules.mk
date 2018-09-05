@@ -32,6 +32,7 @@ OBJS		+= $(BINARY).o \
 			   $(BINARY)_sht.o \
 			   $(BINARY)_adc.o \
 			   $(BINARY)_spi.o \
+			   $(BINARY)_relay.o \
 			   $(BINARY)_wifi.o \
 			   $(BINARY)_wifi_manager.o \
 			   $(BINARY)_wifi_firmware.o

@@ -173,9 +173,9 @@ void WifiMgr::handle_resp_conn_info(tstrM2MConnInfo *info) {
 }
 
 void WifiMgr::handle_resp_get_sys_time(tstrSystemTime *systime) {
-    printf("Resolved system time %04u-%02u-%02u %02u:%02u:%02u\n",
-        systime->u16Year, systime->u8Month, systime->u8Day,
-        systime->u8Hour, systime->u8Minute, systime->u8Second);
+    // printf("Resolved system time %04u-%02u-%02u %02u:%02u:%02u\n",
+    //     systime->u16Year, systime->u8Month, systime->u8Day,
+    //     systime->u8Hour, systime->u8Minute, systime->u8Second);
 }
 
 void WifiMgr::handle_resp_conn_state_changed(tstrM2mWifiStateChanged* new_state) {

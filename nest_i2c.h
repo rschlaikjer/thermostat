@@ -14,6 +14,7 @@
 
 // Initialize the i2c bus
 void n_i2c_setup(void);
+void i2c_scan(void);
 
 // Perform a transfer over i2c with the given address.
 // Returns 1 on success, 0 on error.

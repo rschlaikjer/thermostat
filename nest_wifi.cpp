@@ -98,12 +98,12 @@ void WifiFsm::socket_cb(SOCKET sock, uint8_t evt, void *evt_data) {
             // printf("Recv on socket %d\n", sock);
             recv_msg = static_cast<tstrSocketRecvMsg*>(evt_data);
             if (recv_msg->s16BufferSize > 0) {
-                printf("Recv'd %d bytes on sock %d (remaining: %u)\n",
-                        recv_msg->s16BufferSize, sock, recv_msg->u16RemainingSize);
+                // printf("Recv'd %d bytes on sock %d (remaining: %u)\n",
+                //         recv_msg->s16BufferSize, sock, recv_msg->u16RemainingSize);
                 for (i = 0; i < recv_msg->s16BufferSize; i++) {
                     printf("0x%02x ", recv_msg->pu8Buffer[i]);
                 }
-                printf("\n");
+                // printf("\n");
 
                 // If there's more data to be read, immediately re-schedule
                 // the recv call
@@ -112,14 +112,19 @@ void WifiFsm::socket_cb(SOCKET sock, uint8_t evt, void *evt_data) {
                 }
             } else if (recv_msg->s16BufferSize == SOCK_ERR_TIMEOUT) {
                 // No data to recv
-            } else {
+            } else if (recv_msg->s16BufferSize < 0) {
                 printf("Failed to recv data on sock %d: %s\n",
                         sock, socket_error_str(recv_msg->s16BufferSize));
+                reset_socket();
             }
             break;
         case SOCKET_MSG_SEND:
         case SOCKET_MSG_SENDTO:
-            // printf("Send on socket %d\n", sock);
+            i = *reinterpret_cast<int16_t*>(evt_data);
+            if (i < 0) {
+                printf("Failed send on sock %d: %s\n", sock, socket_error_str(i));
+                reset_socket();
+            }
             break;
     }
 }
@@ -146,6 +151,7 @@ void WifiFsm::ensure_socket_connected() {
             printf("Failed to create socket: %s\n", socket_error_str(_sock));
             return;
         }
+        printf("Opened TCP socket %d\n", _sock);
 
         // Register ourselves with the wifi manager for socket callbacks
         Wifi.register_socket_handler(_sock, this);
@@ -264,6 +270,7 @@ void WifiFsm::sock_send(uint8_t *data, size_t bytes) {
 }
 
 void WifiFsm::reset_socket() {
+    printf("Resetting socket\n");
     if (_sock >= 0) {
         Wifi.unregister_socket_handler(_sock, this);
         sock_close(_sock);

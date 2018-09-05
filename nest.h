@@ -19,10 +19,11 @@
 #include "nest_spi.h"
 #include "nest_wifi.h"
 #include "nest_secrets.h"
+#include "nest_relay.h"
 
 const uint32_t *STM32F0_CHIP_ID = reinterpret_cast<uint32_t *>(0x1FFFF7AC);
 
-const uint32_t WATCHDOG_TIMEOUT_MS = 10000;
+const uint32_t WATCHDOG_TIMEOUT_MS = 3000;
 
 void nest_init(void);
 

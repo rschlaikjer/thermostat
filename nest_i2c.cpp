@@ -1,5 +1,31 @@
 #include "nest_i2c.h"
 
+void i2c_scan() {
+    printf("Scanning i2c bus:\n");
+    for (uint8_t addr = 1; addr < 128; addr++) {
+        printf("[0x%02x] ", addr);
+        i2c_set_7bit_address(NEST_I2C, addr);
+        i2c_set_write_transfer_dir(NEST_I2C);
+        i2c_disable_autoend(NEST_I2C);
+        i2c_send_start(NEST_I2C);
+        i2c_set_bytes_to_transfer(NEST_I2C, 1);
+        while (true) {
+            if (i2c_transmit_int_status(NEST_I2C)) {
+                printf("ACK\n");
+                i2c_send_data(NEST_I2C, 0);
+                i2c_send_stop(NEST_I2C);
+                break;
+            }
+            if (i2c_nack(NEST_I2C)) {
+                printf("NAK\n");
+                I2C_ICR(NEST_I2C) |= I2C_ICR_NACKCF;
+                break;
+            }
+        }
+        // i2c_send_stop(NEST_I2C);
+    }
+}
+
 void n_i2c_setup(void) {
     printf("Initializing i2c... ");
     // Ensure clock is enabled
@@ -67,6 +93,14 @@ uint8_t n_i2c_transfer(const uint8_t address,
                 // If there's been a NAK, then abort
                 if (i2c_nack(NEST_I2C)) {
                     printf("NAK while trying to communicate with 0x%02x\n", address);
+
+                    // Clear NAK flag
+                    I2C_ICR(NEST_I2C) |= I2C_ICR_NACKCF;
+                    I2C_ICR(NEST_I2C) |= I2C_ICR_STOPCF;
+
+                    // Stop transmission
+                    // i2c_send_stop(NEST_I2C);
+
                     return NEST_I2C_ERROR;
                 }
             }

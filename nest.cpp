@@ -14,6 +14,9 @@ static void clock_setup(void) {
     // Set clock at 48MHz from internal oscillator
     rcc_clock_setup_in_hsi_out_48mhz();
 
+    // Enable LSI clock for IWDG
+    rcc_osc_on(RCC_LSI);
+
     // Enable GPIO clocks
     rcc_periph_clock_enable(RCC_GPIOA);
     rcc_periph_clock_enable(RCC_GPIOB);
@@ -33,10 +36,10 @@ int main(void) {
 void nest_init() {
     // Configure system clock
     clock_setup();
-    iwdg_reset();
 
     // Configure and enable watchdog timer
     iwdg_set_period_ms(WATCHDOG_TIMEOUT_MS);
+    iwdg_reset();
     iwdg_start();
 
     // Enable systick to provide real-time-ish clocl
@@ -60,6 +63,9 @@ void nest_init() {
     n_i2c_setup();
     n_spi_setup();
     adc_setup();
+    n_relay_init();
+    lcd_init();
+    lcd_clear();
 
     // Enable wifi
     Wifi.init();
@@ -78,7 +84,7 @@ WifiFsm wifi_fsm;
 
 void nest_event_loop() {
     if (millis() - last_read_0 > READ_0_RATE_MS) {
-        if (sht_read(SHT_0_ADDR, &temp, &rh)) {
+        if (sht_read(SHT_1_ADDR, &temp, &rh)) {
             wifi_fsm.send_temperature(temp);
             wifi_fsm.send_rh(rh);
         }
@@ -87,7 +93,10 @@ void nest_event_loop() {
         wifi_fsm.send_brightness(brightness);
 
         last_read_0 = millis();
+        printf(".");
     }
+
+    lcd_update();
 
     // Handle wifi events
     wifi_fsm.event_loop();
