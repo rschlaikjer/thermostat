@@ -19,6 +19,10 @@ void uart_setup() {
     // Finally enable the USART
     usart_enable(NEST_UART);
 
+    // One last thing: disable buffering on stdout.
+    // No point optimizing for minimizing nonexistend syscalls...
+    setbuf(stdout, NULL);
+
     printf("\r\nUART initialized\n");
 }
 
