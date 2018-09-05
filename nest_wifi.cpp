@@ -49,8 +49,8 @@ void WifiFsm::resolve_cb(uint8_t *hostname, uint32_t ip_addr) {
     _hostname_is_resolving = false;
     _resolved_ip = _ntohl(ip_addr);
     printf("Resolved '%s' -> %lu.%lu.%lu.%lu\n",
-        hostname, (ip_addr >> 24), ((ip_addr >> 16) & 0xFF),
-        ((ip_addr >> 8) & 0xFF), ip_addr & 0xFF);
+        hostname, (_resolved_ip >> 24), ((_resolved_ip >> 16) & 0xFF),
+        ((_resolved_ip >> 8) & 0xFF), _resolved_ip & 0xFF);
 }
 
 void WifiFsm::socket_cb(SOCKET sock, uint8_t evt, void *evt_data) {

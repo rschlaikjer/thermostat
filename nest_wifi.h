@@ -40,7 +40,7 @@ class WifiFsm {
         uint8_t _recv_buffer[RECV_BUFFER_SIZE];
         bool _resolved_hostname = false;
         bool _hostname_is_resolving = false;
-        uint32_t _resolved_ip;
+        uint32_t _resolved_ip = 0;
 
         void ensure_wifi_connected();
         void ensure_socket_connected();
