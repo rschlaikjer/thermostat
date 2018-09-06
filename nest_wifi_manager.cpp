@@ -173,9 +173,31 @@ void WifiMgr::handle_resp_conn_info(tstrM2MConnInfo *info) {
 }
 
 void WifiMgr::handle_resp_get_sys_time(tstrSystemTime *systime) {
-    // printf("Resolved system time %04u-%02u-%02u %02u:%02u:%02u\n",
-    //     systime->u16Year, systime->u8Month, systime->u8Day,
-    //     systime->u8Hour, systime->u8Minute, systime->u8Second);
+    uint16_t y = systime->u16Year;
+    uint8_t m = systime->u8Month;
+    uint8_t d = systime->u8Day;
+    uint64_t t;
+
+    //January and February are counted as months 13 and 14 of the previous year
+    if(m <= 2) {
+       m += 12;
+       y -= 1;
+    }
+
+    //Convert years to days
+    t = (365 * y) + (y / 4) - (y / 100) + (y / 400);
+    //Convert months to days
+    t += (30 * m) + (3 * (m + 1) / 5) + d;
+    //Unix time starts on January 1st, 1970
+    t -= 719561;
+    //Convert days to seconds
+    t *= 86400;
+    //Add hours, minutes and seconds
+    t += (3600 * systime->u8Hour) + (60 * systime->u8Minute) + systime->u8Second;
+    // Convert to ms
+    t *= 1000;
+
+    set_utc_offset(t);
 }
 
 void WifiMgr::handle_resp_conn_state_changed(tstrM2mWifiStateChanged* new_state) {
@@ -357,6 +379,25 @@ void WifiMgr::unregister_socket_handler(SOCKET sock, WifiFsm *fsm) {
     if (_socket_handlers[sock] == fsm) {
         _socket_handlers[sock] = NULL;
     }
+}
+
+void WifiMgr::event_loop() {
+    // Process any pending events in the driver
+    m2m_wifi_handle_events(NULL);
+
+    // Maybe update system time sync
+    update_system_time();
+
+}
+
+void WifiMgr::update_system_time() {
+    if (millis() - _last_ntp_sync < NTP_SYNC_INTERVAL_MS) {
+        return;
+    }
+    if (M2M_SUCCESS != m2m_wifi_get_sytem_time()) {
+        printf("Failed to request system time");
+    }
+    _last_ntp_sync = millis();
 }
 
 WifiMgr Wifi;

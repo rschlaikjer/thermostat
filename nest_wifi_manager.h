@@ -16,6 +16,7 @@ extern "C" {
 #include "nest_secrets.h"
 
 #define SOCKET_BUFFER_SIZE 1472
+#define NTP_SYNC_INTERVAL_MS 600000 // 10 min
 
 typedef enum {
     WL_RESET_MODE = 0,
@@ -68,6 +69,8 @@ class WifiMgr {
         void deep_sleep_mode_enable();
         void sleep_mode_disable();
 
+        void event_loop();
+
         void register_socket_handler(SOCKET sock, WifiFsm *fsm);
         void unregister_socket_handler(SOCKET sock, WifiFsm *fsm);
 
@@ -78,6 +81,7 @@ class WifiMgr {
         bool _has_ip_addr = false;
         wl_socket_info _sockets[MAX_SOCKET];
         WifiFsm* _socket_handlers[MAX_SOCKET] = {NULL};
+        uint64_t _last_ntp_sync = 0;
 
         // Status LED management
         void led_enable_wifi();
@@ -86,6 +90,8 @@ class WifiMgr {
         void led_disable_wifi();
         void led_disable_error();
         void led_disable_act();
+
+        void update_system_time();
 
         // Individual callback handlers
         void handle_resp_conn_state_changed(tstrM2mWifiStateChanged* new_state);

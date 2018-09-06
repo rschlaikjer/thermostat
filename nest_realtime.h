@@ -9,8 +9,13 @@ extern "C" {
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/cm3/systick.h>
 
+#define EST_OFFSET 14400000
+
 void systick_setup(void);
 uint64_t millis(void);
+uint64_t n_utc(void);
+uint64_t n_est(void);
+void set_utc_offset(uint64_t current_utc);
 void n_sleep(uint64_t milliseconds);
 
 #ifdef __cplusplus

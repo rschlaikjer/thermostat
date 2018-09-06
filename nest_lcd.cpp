@@ -158,9 +158,10 @@ void lcd_update() {
     // Line 3
     if (lcd_set_line(2)) { return; }
     memset(&data[1], 0x20, 20);
-    len = snprintf(reinterpret_cast<char *>(&data[1]), 21,
-        "2018-09-05  18:23:43"
-    );
+    const time_t now = n_est() / 1000;
+    struct tm local = *localtime(&now);
+    len = strftime(reinterpret_cast<char *>(&data[1]), 21,
+        "%Y-%m-%d  %H:%M:%S", &local);
     data[len+1] = ' ';
     if (NEST_I2C_XFER_OK != n_i2c_transfer(LCD_I2C_ADDR, data, sizeof(data)-1, NULL, 0)) {
         printf("LCD update failed\n");

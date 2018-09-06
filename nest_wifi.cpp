@@ -2,9 +2,6 @@
 
 // Handle any events that need doing
 void WifiFsm::event_loop() {
-    // Process any pending events in the driver
-    m2m_wifi_handle_events(NULL);
-
     // Ensure we're connected to wifi
     ensure_wifi_connected();
 
@@ -98,13 +95,6 @@ void WifiFsm::socket_cb(SOCKET sock, uint8_t evt, void *evt_data) {
             // printf("Recv on socket %d\n", sock);
             recv_msg = static_cast<tstrSocketRecvMsg*>(evt_data);
             if (recv_msg->s16BufferSize > 0) {
-                // printf("Recv'd %d bytes on sock %d (remaining: %u)\n",
-                //         recv_msg->s16BufferSize, sock, recv_msg->u16RemainingSize);
-                for (i = 0; i < recv_msg->s16BufferSize; i++) {
-                    printf("0x%02x ", recv_msg->pu8Buffer[i]);
-                }
-                // printf("\n");
-
                 // If there's more data to be read, immediately re-schedule
                 // the recv call
                 if (recv_msg->u16RemainingSize > 0) {

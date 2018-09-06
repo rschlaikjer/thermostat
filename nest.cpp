@@ -93,12 +93,14 @@ void nest_event_loop() {
         wifi_fsm.send_brightness(brightness);
 
         last_read_0 = millis();
-        printf(".");
     }
 
     lcd_update();
 
-    // Handle wifi events
+    // Handle base wifi events
+    Wifi.event_loop();
+
+    // Handle socket events
     wifi_fsm.event_loop();
 
     // Tickle the watchdog

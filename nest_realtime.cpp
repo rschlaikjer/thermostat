@@ -1,6 +1,7 @@
 #include "nest_realtime.h"
 
 static volatile uint64_t _millis = 0;
+static uint64_t _utc_offset = 0;
 
 void systick_setup(void) {
     systick_set_clocksource(STK_CSR_CLKSOURCE_EXT);
@@ -24,3 +25,15 @@ void n_sleep(uint64_t milliseconds) {
     while (millis() < until);
 }
 
+
+uint64_t n_utc(void) {
+    return _utc_offset + millis();
+}
+
+uint64_t n_est(void) {
+    return n_utc() - EST_OFFSET;
+}
+
+void set_utc_offset(uint64_t current_utc) {
+    _utc_offset = current_utc - millis();
+}
