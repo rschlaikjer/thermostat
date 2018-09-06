@@ -82,12 +82,14 @@ uint8_t n_i2c_transfer(const uint8_t address,
         while (write_count--) {
 
             // Wait until we are either clear to send or get a NAK
-            bool wait = true;
-            while (wait) {
+            const uint64_t deadline = millis() + 300;
+            bool tx_ready = false;
+            while (millis() < deadline) {
                 // Check if clear to send
                 if (i2c_transmit_int_status(NEST_I2C)) {
                     // If so, can stop waiting
-                    wait = false;
+                    tx_ready = true;
+                    break;
                 }
 
                 // If there's been a NAK, then abort
@@ -96,13 +98,18 @@ uint8_t n_i2c_transfer(const uint8_t address,
 
                     // Clear NAK flag
                     I2C_ICR(NEST_I2C) |= I2C_ICR_NACKCF;
-                    I2C_ICR(NEST_I2C) |= I2C_ICR_STOPCF;
 
                     // Stop transmission
-                    // i2c_send_stop(NEST_I2C);
+                    i2c_send_stop(NEST_I2C);
 
                     return NEST_I2C_ERROR;
                 }
+            }
+
+            // If we broke the loop because of timeout, not txready, error
+            if (!tx_ready) {
+                printf("Timed out trying to communicate with 0x%02x\n", address);
+                return NEST_I2C_ERROR;
             }
 
             // If the wait is over, send the data

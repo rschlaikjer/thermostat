@@ -7,6 +7,8 @@
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/i2c.h>
 
+#include "nest_realtime.h"
+
 #define NEST_I2C I2C1
 
 #define NEST_I2C_XFER_OK 0x01
