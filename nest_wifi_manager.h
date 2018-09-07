@@ -16,7 +16,7 @@ extern "C" {
 #include "nest_secrets.h"
 
 #define SOCKET_BUFFER_SIZE 1472
-#define NTP_SYNC_INTERVAL_MS 600000 // 10 min
+#define NTP_SYNC_INTERVAL_MS 3600000 // 1 hr
 
 typedef enum {
     WL_RESET_MODE = 0,
