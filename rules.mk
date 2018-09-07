@@ -253,6 +253,16 @@ styleclean: $(STYLECHECKFILES:=.styleclean)
 		   -x bmp_flash.scr \
 		   $(*).elf
 
+option_bytes:
+	$(GDB) --batch \
+		-ex 'target extended-remote $(BMP_PORT)' \
+		-ex 'monitor version' \
+		-ex 'monitor swdp_scan' \
+		-ex 'attach 1' \
+		-ex 'set mem inaccessible-by-default off' \
+		-ex 'mon option 0x1FFFF802 0x01FE'  # Enable IWDG in hardware
+
+
 .PHONY: images clean stylecheck styleclean elf bin hex srec list
 
 -include $(OBJS:.o=.d)
