@@ -45,7 +45,7 @@ void WifiFsm::resolve_cb(uint8_t *hostname, uint32_t ip_addr) {
     _resolved_hostname = true;
     _hostname_is_resolving = false;
     _resolved_ip = _ntohl(ip_addr);
-    printf("Resolved '%s' -> %lu.%lu.%lu.%lu\n",
+    n_log("Resolved '%s' -> %lu.%lu.%lu.%lu\n",
         hostname, (_resolved_ip >> 24), ((_resolved_ip >> 16) & 0xFF),
         ((_resolved_ip >> 8) & 0xFF), _resolved_ip & 0xFF);
 }
@@ -53,7 +53,7 @@ void WifiFsm::resolve_cb(uint8_t *hostname, uint32_t ip_addr) {
 void WifiFsm::socket_cb(SOCKET sock, uint8_t evt, void *evt_data) {
     // If this data isn't for us, ignore
     if (_sock != sock) {
-        printf("Got unexpected event for socket %d (expected %d)\n", sock, _sock);
+        n_log("Got unexpected event for socket %d (expected %d)\n", sock, _sock);
         return;
     }
 
@@ -63,16 +63,16 @@ void WifiFsm::socket_cb(SOCKET sock, uint8_t evt, void *evt_data) {
     int16_t i;
     switch (evt) {
         case SOCKET_MSG_BIND:
-            printf("Bound socket %d\n", sock);
+            n_log("Bound socket %d\n", sock);
             break;
         case SOCKET_MSG_LISTEN:
-            printf("Listen socket %d\n", sock);
+            n_log("Listen socket %d\n", sock);
             break;
         case SOCKET_MSG_DNS_RESOLVE:
-            printf("DNS resolv on socket %d\n", sock);
+            n_log("DNS resolv on socket %d\n", sock);
             break;
         case SOCKET_MSG_ACCEPT:
-            printf("Accept on socket %d\n", sock);
+            n_log("Accept on socket %d\n", sock);
             break;
         case SOCKET_MSG_CONNECT:
             connect_status = (tstrSocketConnectMsg *) evt_data;
@@ -84,7 +84,7 @@ void WifiFsm::socket_cb(SOCKET sock, uint8_t evt, void *evt_data) {
                 send_hello();
             } else {
                 // Failed to bind, reset binding state so we try again
-                printf("Failed to bind socket %d: %s\n", sock,
+                n_log("Failed to bind socket %d: %s\n", sock,
                     socket_error_str(connect_status->s8Error));
                 _sock_bound = false;
                 _sock_is_binding = false;
@@ -92,7 +92,7 @@ void WifiFsm::socket_cb(SOCKET sock, uint8_t evt, void *evt_data) {
             break;
         case SOCKET_MSG_RECV:
         case SOCKET_MSG_RECVFROM:
-            // printf("Recv on socket %d\n", sock);
+            // n_log("Recv on socket %d\n", sock);
             recv_msg = static_cast<tstrSocketRecvMsg*>(evt_data);
             if (recv_msg->s16BufferSize > 0) {
                 // If there's more data to be read, immediately re-schedule
@@ -103,7 +103,7 @@ void WifiFsm::socket_cb(SOCKET sock, uint8_t evt, void *evt_data) {
             } else if (recv_msg->s16BufferSize == SOCK_ERR_TIMEOUT) {
                 // No data to recv
             } else if (recv_msg->s16BufferSize < 0) {
-                printf("Failed to recv data on sock %d: %s\n",
+                n_log("Failed to recv data on sock %d: %s\n",
                         sock, socket_error_str(recv_msg->s16BufferSize));
                 reset_socket();
             }
@@ -112,7 +112,7 @@ void WifiFsm::socket_cb(SOCKET sock, uint8_t evt, void *evt_data) {
         case SOCKET_MSG_SENDTO:
             i = *reinterpret_cast<int16_t*>(evt_data);
             if (i < 0) {
-                printf("Failed send on sock %d: %s\n", sock, socket_error_str(i));
+                n_log("Failed send on sock %d: %s\n", sock, socket_error_str(i));
                 reset_socket();
             }
             break;
@@ -138,10 +138,10 @@ void WifiFsm::ensure_socket_connected() {
         _sock_is_binding = false;
         if (_sock < 0) {
             // Error creating socket
-            printf("Failed to create socket: %s\n", socket_error_str(_sock));
+            n_log("Failed to create socket: %s\n", socket_error_str(_sock));
             return;
         }
-        printf("Opened TCP socket %d\n", _sock);
+        n_log("Opened TCP socket %d\n", _sock);
 
         // Register ourselves with the wifi manager for socket callbacks
         Wifi.register_socket_handler(_sock, this);
@@ -152,7 +152,7 @@ void WifiFsm::ensure_socket_connected() {
         if (!_hostname_is_resolving) {
             int8_t resolv_result = gethostbyname((uint8_t*) N_SECRET_SERVER_HOSTNAME);
             if (resolv_result < 0) {
-                printf("Failed to resolve hostname %s: %d\n",
+                n_log("Failed to resolve hostname %s: %d\n",
                     N_SECRET_SERVER_HOSTNAME, resolv_result);
             } else {
                 _resolved_hostname = false;
@@ -167,7 +167,7 @@ void WifiFsm::ensure_socket_connected() {
         addr.sin_family = AF_INET;
         addr.sin_port = _htons(N_SECRET_SERVER_PORT);
         addr.sin_addr.s_addr = _htonl(_resolved_ip);
-        printf("Connecting to %lu.%lu.%lu.%lu:%u\n",
+        n_log("Connecting to %lu.%lu.%lu.%lu:%u\n",
             _resolved_ip >> 24, (_resolved_ip >> 16) & 0xFF,
             (_resolved_ip >> 8) & 0xFF, _resolved_ip & 0xFF,
             N_SECRET_SERVER_PORT
@@ -176,7 +176,7 @@ void WifiFsm::ensure_socket_connected() {
 
         // Check if we got a connection error
         if (err < 0) {
-            printf("Failed to connect socket: %s\n", socket_error_str(err));
+            n_log("Failed to connect socket: %s\n", socket_error_str(err));
             sock_close(_sock);
             _sock = -1;
             return;
@@ -248,19 +248,19 @@ void WifiFsm::sock_send(uint8_t c) {
 void WifiFsm::sock_send(uint8_t *data, size_t bytes) {
     // If the socket isn't connected, just drop data
     if ( _sock < 0) {
-        printf("Socket down, dropping data\n");
+        n_log("Socket down, dropping data\n");
         return;
     }
 
     int16_t ret = send(_sock, data, bytes, 0); // Flags field unused
     if (ret < 0) {
-        printf("Failed to send data: %s\n", socket_error_str(ret));
+        n_log("Failed to send data: %s\n", socket_error_str(ret));
         reset_socket();
     }
 }
 
 void WifiFsm::reset_socket() {
-    printf("Resetting socket\n");
+    n_log("Resetting socket\n");
     if (_sock >= 0) {
         Wifi.unregister_socket_handler(_sock, this);
         sock_close(_sock);
@@ -289,6 +289,6 @@ void WifiFsm::process_received_data() {
     int16_t ret = recv(_sock, _recv_buffer, 256, 100);
     _last_recv_poll = millis();
     if (ret < 0) {
-        printf("Failed to recv data: %s\n", socket_error_str(ret));
+        n_log("Failed to recv data: %s\n", socket_error_str(ret));
     }
 }

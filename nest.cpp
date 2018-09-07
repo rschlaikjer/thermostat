@@ -50,13 +50,13 @@ void nest_init() {
 
     // Log if we got restarted by IWDG
     if (RCC_CSR & RCC_CSR_IWDGRSTF) {
-        printf("Restarted by watchdog\n");
+        n_log("Restarted by watchdog\n");
     }
 
     // Clear the reset cause register
     RCC_CSR |= RCC_CSR_RMVF;
 
-    printf("Unique chip ID: 0x%08lx%08lx%08lx\n",
+    n_log("Unique chip ID: 0x%08lx%08lx%08lx\n",
         STM32F0_CHIP_ID[0], STM32F0_CHIP_ID[1], STM32F0_CHIP_ID[2]);
 
     // Initialize peripherals

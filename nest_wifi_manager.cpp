@@ -26,7 +26,7 @@ uint8_t WifiMgr::init() {
         return 0;
     }
 
-    printf("Initializing WiFi... ");
+    n_log("Initializing WiFi... ");
 
     // Initialize board support package
     nm_bsp_init();
@@ -42,9 +42,9 @@ uint8_t WifiMgr::init() {
         printf("failed!\n");
 
         if (ret == M2M_ERR_FW_VER_MISMATCH) {
-            printf("WiFi firmware version mismatch\n");
+            n_log("WiFi firmware version mismatch\n");
         } else {
-            printf("WiFi init error: %x\n", ret);
+            n_log("WiFi init error: %x\n", ret);
         }
 
         return ret;
@@ -87,7 +87,7 @@ void WifiMgr::led_disable_error() { m2m_periph_gpio_set_val(M2M_PERIPH_GPIO6, 1)
 
 uint8_t WifiMgr::connect(const char *ssid, const char *psk) {
     // Begin WPA2 connection
-    printf("Connecting to SSID '%s'\n", ssid);
+    n_log("Connecting to SSID '%s'\n", ssid);
     int ret = m2m_wifi_connect(
         (char *)ssid, strlen(ssid),
         M2M_WIFI_SEC_WPA_PSK,
@@ -95,7 +95,7 @@ uint8_t WifiMgr::connect(const char *ssid, const char *psk) {
         M2M_WIFI_CH_ALL
     );
     if (ret) {
-        printf("Failed to connect: 0x%x\n", ret);
+        n_log("Failed to connect: 0x%x\n", ret);
         led_enable_error();
         return ret;
     } else {
@@ -106,14 +106,14 @@ uint8_t WifiMgr::connect(const char *ssid, const char *psk) {
 }
 
 uint8_t WifiMgr::wait_for_connection() {
-    printf("Waiting up to 60 seconds for WiFi connection...\n");
+    n_log("Waiting up to 60 seconds for WiFi connection...\n");
     const uint64_t until = millis() + 60000;
     while (millis() < until && connection_state() == M2M_WIFI_UNDEF) {
         m2m_wifi_handle_events(NULL);
     }
 
     if (connection_state() != M2M_WIFI_CONNECTED) {
-        printf("Timed out waiting for connection\n");
+        n_log("Timed out waiting for connection\n");
         return 1;
     }
 
@@ -157,14 +157,14 @@ void WifiMgr::handle_event(uint8_t message_type, void *message_data) {
             } else if (is_m2m_sta_cmd(message_type)) {
                 msg_name = m2_sta_cmd_to_string((tenuM2mStaCmd) message_type);
             }
-            printf("Got unhandled wifi event 0x%x (%s), additional data %p\n",
+            n_log("Got unhandled wifi event 0x%x (%s), additional data %p\n",
                 message_type, msg_name, message_data);
             break;
     }
 }
 
 void WifiMgr::handle_resp_conn_info(tstrM2MConnInfo *info) {
-    printf("Connection state:\nIP Address: %u.%u.%u.%u\nMAC: %02x:%02x:%02x:%02x:%02x:%02x\nRSSI: %d\n",
+    n_log("Connection state:\nIP Address: %u.%u.%u.%u\nMAC: %02x:%02x:%02x:%02x:%02x:%02x\nRSSI: %d\n",
         info->au8IPAddr[0], info->au8IPAddr[1], info->au8IPAddr[2], info->au8IPAddr[3],
         info->au8MACAddress[0], info->au8MACAddress[1], info->au8MACAddress[2],
         info->au8MACAddress[3], info->au8MACAddress[4], info->au8MACAddress[5],
@@ -197,11 +197,15 @@ void WifiMgr::handle_resp_get_sys_time(tstrSystemTime *systime) {
     // Convert to ms
     t *= 1000;
 
+    // Update our UTC offset
     set_utc_offset(t);
+
+    // Log it
+    n_log("UTC offset updated\n");
 }
 
 void WifiMgr::handle_resp_conn_state_changed(tstrM2mWifiStateChanged* new_state) {
-    printf("Wifi connection state changed to %s",
+    n_log("Wifi connection state changed to %s",
         new_state->u8CurrState == M2M_WIFI_CONNECTED ? "connected" : "disconnected");
     if (new_state->u8CurrState == M2M_WIFI_CONNECTED) {
         printf("\n");
@@ -219,7 +223,7 @@ void WifiMgr::handle_req_dhcp_conf(uint8_t *ip_address) {
     _has_ip_addr = true;
 
     // Log
-    printf("Received DHCP lease %u.%u.%u.%u\n",
+    n_log("Received DHCP lease %u.%u.%u.%u\n",
         ip_address[0], ip_address[1], ip_address[2], ip_address[3]);
 }
 
@@ -242,27 +246,27 @@ void WifiMgr::handle_socket_event(SOCKET sock, uint8_t message_type, void *messa
 
     switch(message_type) {
         case SOCKET_MSG_BIND:
-            printf("Bound socket %d\n", sock);
+            n_log("Bound socket %d\n", sock);
             break;
         case SOCKET_MSG_LISTEN:
-            printf("Listen socket %d\n", sock);
+            n_log("Listen socket %d\n", sock);
             break;
         case SOCKET_MSG_DNS_RESOLVE:
-            printf("DNS resolv on socket %d\n", sock);
+            n_log("DNS resolv on socket %d\n", sock);
             break;
         case SOCKET_MSG_ACCEPT:
-            printf("Accept on socket %d\n", sock);
+            n_log("Accept on socket %d\n", sock);
             break;
         case SOCKET_MSG_CONNECT:
-            printf("Connect on socket %d\n", sock);
+            n_log("Connect on socket %d\n", sock);
             break;
         case SOCKET_MSG_RECV:
         case SOCKET_MSG_RECVFROM:
-            printf("Recv on socket %d\n", sock);
+            n_log("Recv on socket %d\n", sock);
             break;
         case SOCKET_MSG_SEND:
         case SOCKET_MSG_SENDTO:
-            // printf("Send on socket %d\n", sock);
+            // n_log("Send on socket %d\n", sock);
             // led_enable_act();
             // led_disable_act();
             break;
@@ -395,7 +399,7 @@ void WifiMgr::update_system_time() {
         return;
     }
     if (M2M_SUCCESS != m2m_wifi_get_sytem_time()) {
-        printf("Failed to request system time");
+        n_log("Failed to request system time\n");
     }
     _last_ntp_sync = millis();
 }

@@ -27,7 +27,7 @@ void i2c_scan() {
 }
 
 void n_i2c_setup(void) {
-    printf("Initializing i2c... ");
+    n_log("Initializing i2c... ");
     // Ensure clock is enabled
     rcc_periph_clock_enable(RCC_I2C1);
     rcc_periph_clock_enable(RCC_GPIOB);
@@ -94,7 +94,7 @@ uint8_t n_i2c_transfer(const uint8_t address,
 
                 // If there's been a NAK, then abort
                 if (i2c_nack(NEST_I2C)) {
-                    printf("NAK while trying to communicate with 0x%02x\n", address);
+                    n_log("NAK while trying to communicate with 0x%02x\n", address);
 
                     // Clear NAK flag
                     I2C_ICR(NEST_I2C) |= I2C_ICR_NACKCF;
@@ -108,7 +108,7 @@ uint8_t n_i2c_transfer(const uint8_t address,
 
             // If we broke the loop because of timeout, not txready, error
             if (!tx_ready) {
-                printf("Timed out trying to communicate with 0x%02x\n", address);
+                n_log("Timed out trying to communicate with 0x%02x\n", address);
                 return NEST_I2C_ERROR;
             }
 

@@ -13,7 +13,7 @@ uint16_t readUInt(uint8_t address, uint8_t reg) {
 }
 
 void lcd_init() {
-    printf("Initializing lcd... ");
+    n_log("Initializing lcd... ");
 
     uint8_t init_commands[] = {
         0x80, 0x3A,  // 8 bit data length extension Bit RE=1; REV=0
@@ -63,7 +63,7 @@ void lcd_rom_select(uint8_t rom) {
         0x00, 0x38, // RE = 0
     };
     if (NEST_I2C_XFER_OK != n_i2c_transfer(LCD_I2C_ADDR, rom_cmd, 4, NULL, 0)) {
-        printf("Failed to change lcd rom\n");
+        n_log("Failed to change lcd rom\n");
     }
 }
 
@@ -72,7 +72,7 @@ void lcd_clear() {
     cmd[0] = 0x00; // Command, no continuation
     cmd[1] = 0x01; // Clear display, cursor return
     if (NEST_I2C_XFER_OK != n_i2c_transfer(LCD_I2C_ADDR, cmd, sizeof(cmd), NULL, 0)) {
-        printf("Failed to clear lcd\n");
+        n_log("Failed to clear lcd\n");
     }
 }
 
@@ -81,7 +81,7 @@ uint8_t lcd_home() {
     cmd[0] = 0x00; // Command, no continuation
     cmd[1] = 0x02; // Cursor to 0,0
     if (NEST_I2C_XFER_OK != n_i2c_transfer(LCD_I2C_ADDR, cmd, sizeof(cmd), NULL, 0)) {
-        printf("Failed to home cursor\n");
+        n_log("Failed to home cursor\n");
         return 1;
     }
     return 0;
@@ -94,7 +94,7 @@ uint8_t lcd_set_line(uint8_t line) {
     cmd[0] = 0x00; // Command, no continuation
     cmd[1] = 0x80 + (line << 5);
     if (NEST_I2C_XFER_OK != n_i2c_transfer(LCD_I2C_ADDR, cmd, sizeof(cmd), NULL, 0)) {
-        printf("Failed to set line\n");
+        n_log("Failed to set line\n");
         return 1;
     }
     return 0;
@@ -136,7 +136,7 @@ void lcd_update() {
         data[20] = 0x12;
     }
     if (NEST_I2C_XFER_OK != n_i2c_transfer(LCD_I2C_ADDR, data, sizeof(data)-1, NULL, 0)) {
-        printf("LCD update failed\n");
+        n_log("LCD update failed\n");
         return;
     }
 
@@ -151,7 +151,7 @@ void lcd_update() {
     );
     data[len+1] = ' ';
     if (NEST_I2C_XFER_OK != n_i2c_transfer(LCD_I2C_ADDR, data, sizeof(data)-1, NULL, 0)) {
-        printf("LCD update failed\n");
+        n_log("LCD update failed\n");
         return;
     }
 
@@ -164,7 +164,7 @@ void lcd_update() {
         "%Y-%m-%d  %H:%M:%S", &local);
     data[len+1] = ' ';
     if (NEST_I2C_XFER_OK != n_i2c_transfer(LCD_I2C_ADDR, data, sizeof(data)-1, NULL, 0)) {
-        printf("LCD update failed\n");
+        n_log("LCD update failed\n");
         return;
     }
 
@@ -176,7 +176,7 @@ void lcd_update() {
     );
     data[len+1] = ' ';
     if (NEST_I2C_XFER_OK != n_i2c_transfer(LCD_I2C_ADDR, data, sizeof(data)-1, NULL, 0)) {
-        printf("LCD update failed\n");
+        n_log("LCD update failed\n");
         return;
     }
 }

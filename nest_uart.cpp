@@ -23,7 +23,11 @@ void uart_setup() {
     // No point optimizing for minimizing nonexistend syscalls...
     setbuf(stdout, NULL);
 
-    printf("\r\nUART initialized\n");
+    printf("\r\n");
+    for (uint8_t i = 0; i < 80; i++)
+        uart_putc('=');
+    printf("\r\n");
+    n_log("UART initialized\n");
 }
 
 int _write(int file, char *ptr, int len) {
@@ -54,4 +58,21 @@ void uart_write(const uint8_t *buf, size_t len) {
     for (size_t i = 0; i < len; i++) {
         uart_putc(buf[i]);
     }
+}
+
+int n_log(const char *format, ...) {
+    // Print the time
+    const time_t now = n_utc() / 1000;
+    struct tm local = *localtime(&now);
+    char buf[20];
+    strftime(buf, 21, "%Y-%m-%d  %H:%M:%S", &local);
+    printf("[%s] ", buf);
+
+    // Proxy args to actual printf
+    va_list args;
+    va_start(args, format);
+    int b = vprintf(format, args);
+    va_end(args);
+
+    return b;
 }

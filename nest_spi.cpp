@@ -1,7 +1,7 @@
 #include "nest_spi.h"
 
 void n_spi_setup(void) {
-    printf("Initializing spi... ");
+    n_log("Initializing spi... ");
 
     // Enable clock for SPI and our GPIO bank
     rcc_periph_clock_enable(NEST_SPI_RCC);

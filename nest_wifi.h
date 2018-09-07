@@ -2,6 +2,7 @@
 #define NEST_WIFI_H
 
 #include "nest_realtime.h"
+#include "nest_uart.h"
 #include "nest_wifi_manager.h"
 #include "nest_secrets.h"
 

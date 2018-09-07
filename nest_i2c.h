@@ -8,6 +8,7 @@
 #include <libopencm3/stm32/i2c.h>
 
 #include "nest_realtime.h"
+#include "nest_uart.h"
 
 #define NEST_I2C I2C1
 

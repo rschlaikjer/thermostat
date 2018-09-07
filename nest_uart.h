@@ -5,14 +5,20 @@
 #include <unistd.h>
 #include <errno.h>
 #include <stdio.h>
+#include <stdarg.h>
+#include <time.h>
 
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/usart.h>
 
+#include "nest_realtime.h"
+
 const uint32_t NEST_UART = USART2;
 
+#ifdef __cplusplus
 extern "C" {
+#endif
     void uart_setup(void);
     void uart_putc(char c);
     uint16_t uart_getc(void);
@@ -20,6 +26,11 @@ extern "C" {
 
     // Redirect printf to usart
     int _write(int file, char *ptr, int len);
+
+    // Log method
+    int n_log(const char *format, ...);
+#ifdef __cplusplus
 }
+#endif
 
 #endif // NEST_UART_H
