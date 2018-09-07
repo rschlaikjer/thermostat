@@ -152,8 +152,10 @@ void WifiFsm::ensure_socket_connected() {
         if (!_hostname_is_resolving) {
             int8_t resolv_result = gethostbyname((uint8_t*) N_SECRET_SERVER_HOSTNAME);
             if (resolv_result < 0) {
-                n_log("Failed to resolve hostname %s: %d\n",
-                    N_SECRET_SERVER_HOSTNAME, resolv_result);
+                n_log("Failed to resolve hostname %s: %s\n",
+                    N_SECRET_SERVER_HOSTNAME, socket_error_str(resolv_result));
+                _resolved_hostname = false;
+                _hostname_is_resolving = false;
             } else {
                 _resolved_hostname = false;
                 _hostname_is_resolving = true;
@@ -247,7 +249,7 @@ void WifiFsm::sock_send(uint8_t c) {
 
 void WifiFsm::sock_send(uint8_t *data, size_t bytes) {
     // If the socket isn't connected, just drop data
-    if ( _sock < 0) {
+    if ( _sock < 0 || !_sock_bound) {
         n_log("Socket down, dropping data\n");
         return;
     }
@@ -262,6 +264,7 @@ void WifiFsm::sock_send(uint8_t *data, size_t bytes) {
 void WifiFsm::reset_socket() {
     n_log("Resetting socket\n");
     if (_sock >= 0) {
+        n_log("Closing socket %d\n", _sock);
         Wifi.unregister_socket_handler(_sock, this);
         sock_close(_sock);
     }
