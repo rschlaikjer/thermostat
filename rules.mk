@@ -263,6 +263,15 @@ option_bytes:
 		-ex 'set mem inaccessible-by-default off' \
 		-ex 'mon option 0x1FFFF802 0x01FE'  # Enable IWDG in hardware
 
+option_bytes_reset:
+	$(GDB) --batch \
+		-ex 'target extended-remote $(BMP_PORT)' \
+		-ex 'monitor version' \
+		-ex 'monitor swdp_scan' \
+		-ex 'attach 1' \
+		-ex 'set mem inaccessible-by-default off' \
+		-ex 'mon option erase' \
+		-ex 'mon option 0x1FFFF800 0x55AA'
 
 .PHONY: images clean stylecheck styleclean elf bin hex srec list
 
