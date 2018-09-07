@@ -1,5 +1,7 @@
 #include "nest_lcd.h"
 
+const bool disable_lcd = true;
+
 int16_t readInt(uint8_t address, uint8_t reg) {
     uint8_t data[2];
     i2c_transfer7(I2C1, address, &reg, 1, data, 2);
@@ -14,6 +16,11 @@ uint16_t readUInt(uint8_t address, uint8_t reg) {
 
 void lcd_init() {
     n_log("Initializing lcd... ");
+
+    if (disable_lcd) {
+        printf("skipped.\n");
+        return;
+    }
 
     uint8_t init_commands[] = {
         0x80, 0x3A,  // 8 bit data length extension Bit RE=1; REV=0
@@ -68,6 +75,9 @@ void lcd_rom_select(uint8_t rom) {
 }
 
 void lcd_clear() {
+    if (disable_lcd) {
+        return;
+    }
     uint8_t cmd[2];
     cmd[0] = 0x00; // Command, no continuation
     cmd[1] = 0x01; // Clear display, cursor return
@@ -105,6 +115,10 @@ void lcd_update() {
     if (millis() - last_display_update < LCD_UPDATE_MS) {
         return;
     }
+
+    if (disable_lcd)
+        return;
+
     last_display_update = millis();
 
     uint8_t data[22] = {};
