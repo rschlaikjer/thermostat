@@ -20,6 +20,7 @@
 #include "nest_wifi.h"
 #include "nest_secrets.h"
 #include "nest_relay.h"
+#include "nest_interrupts.h"
 
 const uint32_t *STM32F0_CHIP_ID = reinterpret_cast<uint32_t *>(0x1FFFF7AC);
 

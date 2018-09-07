@@ -15,9 +15,15 @@ uint32_t gWincENPort = GPIOB;
 uint16_t gWincENPin = GPIO11;
 
 static tpfNmBspIsr gpfIsr;
+static uint8_t gIsrEnabled = 1;
 
-void exti4_15_isr(void) {
-    exti_reset_request(EXTI10);
+void winc_interrupt_bridge(void) {
+    // If interrupts are off, ignore
+    if (!gIsrEnabled) {
+        return;
+    }
+
+    // If the interrupt method is set, call it
     if (gpfIsr) {
         gpfIsr();
     }
@@ -127,19 +133,6 @@ void nm_bsp_sleep(uint32 u32TimeMsec) {
  */
 void nm_bsp_register_isr(tpfNmBspIsr pfIsr) {
     gpfIsr = pfIsr;
-
-    // Trigger on rising edge of EXTI 10
-    exti_set_trigger(EXTI10, EXTI_TRIGGER_FALLING);
-
-    // Configure EXTI10 to use GPIOB
-    exti_select_source(EXTI10, GPIOB);
-
-    // Enable exti interrupts & events
-    exti_enable_request(EXTI10);
-
-    // Enable the interrupt in the NVIC
-    nvic_set_priority(NVIC_EXTI4_15_IRQ, 1);
-    nvic_enable_irq(NVIC_EXTI4_15_IRQ);
 }
 
 /*
@@ -152,13 +145,5 @@ void nm_bsp_register_isr(tpfNmBspIsr pfIsr) {
  *  @version    1.0
  */
 void nm_bsp_interrupt_ctrl(uint8 u8Enable) {
-    if (u8Enable) {
-        // Unmask the interrupt on those pins
-        exti_enable_request(EXTI10);
-        nvic_enable_irq(NVIC_EXTI4_15_IRQ);
-    } else {
-        // Unmask the interrupt on those pins
-        exti_disable_request(EXTI10);
-        nvic_disable_irq(NVIC_EXTI4_15_IRQ);
-    }
+    gIsrEnabled = u8Enable;
 }

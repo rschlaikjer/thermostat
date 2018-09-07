@@ -60,6 +60,7 @@ void nest_init() {
         STM32F0_CHIP_ID[0], STM32F0_CHIP_ID[1], STM32F0_CHIP_ID[2]);
 
     // Initialize peripherals
+    interrupt_init();
     n_i2c_setup();
     n_spi_setup();
     adc_setup();

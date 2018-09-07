@@ -14,7 +14,7 @@
 
 #include "nest_realtime.h"
 
-const uint32_t NEST_UART = USART2;
+#define NEST_UART USART2
 
 #ifdef __cplusplus
 extern "C" {
