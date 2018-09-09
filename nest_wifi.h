@@ -9,6 +9,7 @@
 #define RECONNECT_DELAY_MS 60000
 #define RECV_POLL_RATE_MS 1000
 #define RECV_BUFFER_SIZE 128
+#define SOCKET_MAX_DOWNTIME_MS 30000
 
 #define STM32F0_UUID_ADDR 0x1FFFF7AC
 
@@ -42,6 +43,7 @@ class WifiFsm {
         bool _resolved_hostname = false;
         bool _hostname_is_resolving = false;
         uint32_t _resolved_ip = 0;
+        uint64_t _last_data_sent = 0;
 
         void ensure_wifi_connected();
         void ensure_socket_connected();

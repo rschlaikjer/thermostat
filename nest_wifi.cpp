@@ -251,6 +251,10 @@ void WifiFsm::sock_send(uint8_t *data, size_t bytes) {
     // If the socket isn't connected, just drop data
     if ( _sock < 0 || !_sock_bound) {
         n_log("Socket down, dropping data\n");
+        // If it's been down for some time, force a reset
+        if (millis() - _last_data_sent > SOCKET_MAX_DOWNTIME_MS) {
+            reset_socket();
+        }
         return;
     }
 
@@ -258,6 +262,8 @@ void WifiFsm::sock_send(uint8_t *data, size_t bytes) {
     if (ret < 0) {
         n_log("Failed to send data: %s\n", socket_error_str(ret));
         reset_socket();
+    } else {
+        _last_data_sent = millis();
     }
 }
 
@@ -273,6 +279,8 @@ void WifiFsm::reset_socket() {
     _sock_is_binding = false;
     _resolved_hostname = false;
     _hostname_is_resolving = false;
+    // Update this value so we don't spin if this is the reset reason
+    _last_data_sent = millis();
 }
 
 void WifiFsm::check_and_send_heartbeat() {}
