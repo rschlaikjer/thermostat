@@ -4,13 +4,13 @@ void exti4_15_isr() {
     // Temp minus
     if (exti_get_flag_status(EXTI6)) {
         exti_reset_request(EXTI6);
-        n_log("Btn down\n");
+        n_log("Btn up\n");
     }
 
     // Temp plus
     if (exti_get_flag_status(EXTI7)) {
         exti_reset_request(EXTI7);
-        n_log("Btn up\n");
+        n_log("Btn down\n");
     }
 
 
