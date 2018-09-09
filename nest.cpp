@@ -10,6 +10,8 @@ extern "C" {
     #include "winc1500/driver/include/m2m_ssl.h"
 }
 
+LCD lcd;
+
 static void clock_setup(void) {
     // Set clock at 48MHz from internal oscillator
     rcc_clock_setup_in_hsi_out_48mhz();
@@ -40,7 +42,7 @@ void nest_init() {
     // Configure and enable watchdog timer
     iwdg_set_period_ms(WATCHDOG_TIMEOUT_MS);
     iwdg_reset();
-    iwdg_start();
+    // iwdg_start();
 
     // Enable systick to provide real-time-ish clocl
     systick_setup();
@@ -79,12 +81,12 @@ void nest_init() {
     n_spi_setup();
     adc_setup();
     n_relay_init();
-    lcd_init();
-    lcd_clear();
+    lcd.init();
 
     // Enable wifi
     Wifi.init();
     Wifi.deep_sleep_mode_enable();
+
 }
 
 #define READ_0_RATE_MS 3000
@@ -110,7 +112,7 @@ void nest_event_loop() {
         last_read_0 = millis();
     }
 
-    lcd_update();
+    lcd.update();
 
     // Handle base wifi events
     Wifi.event_loop();

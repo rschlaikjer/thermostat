@@ -1,196 +1,60 @@
 #include "nest_lcd.h"
 
-const bool disable_lcd = true;
-
-int16_t readInt(uint8_t address, uint8_t reg) {
-    uint8_t data[2];
-    i2c_transfer7(I2C1, address, &reg, 1, data, 2);
-    return (((int16_t) data[0]) << 8) | data[1];
-}
-
-uint16_t readUInt(uint8_t address, uint8_t reg) {
-    uint8_t data[2];
-    i2c_transfer7(I2C1, address, &reg, 1, data, 2);
-    return (((uint16_t) data[0]) << 8) | data[1];
-}
-
-void lcd_init() {
+void LCD::init() {
     n_log("Initializing lcd... ");
 
-    if (disable_lcd) {
-        printf("skipped.\n");
-        return;
-    }
+    // TIM1 channel 2 is pwm output to LCD backlight
+    rcc_periph_clock_enable(RCC_TIM1);
+    gpio_set_af(GPIOA, GPIO_AF2, GPIO9);
+    gpio_mode_setup(GPIOA, GPIO_MODE_AF, GPIO_PUPD_NONE, GPIO9);
 
-    uint8_t init_commands[] = {
-        0x80, 0x3A,  // 8 bit data length extension Bit RE=1; REV=0
-        0x80, 0x09,  // 4 line display
-        0x80, 0x06,  // Bottom view
-        0x80, 0x1A,  // BS1 = 1
-        0x80, 0x72,  // ROM select
-        0xC0, 0x00,  // Rom 1
-        0x80, 0x39,  // 8 bit data length extension Bit RE=0; IS=1
-        0x80, 0x1B,  // BS0=1 -> Bias=1/6
-        0x80, 0x6E,  // Divider on, set value
-        0x80, 0x57,  // Booster on and set contrast (DB1=C5, DB0=C4)
-        0x80, 0x72,  // Set contrast (DB3-DB0=C3-C0)
-        0x80, 0x38,  // 8 bit data length extension Bit RE=0; IS=0
-        0x80, 0x0C,  // Display on, no cursor, no blink
-        // Clear continuation bit
-        0x00, 0x01  // Clear display, cursor return
-    };
-
-    if (NEST_I2C_XFER_OK !=
-            n_i2c_transfer(LCD_I2C_ADDR, init_commands, sizeof(init_commands), NULL, 0)) {
-        printf("failed!\n");
-        return;
-    }
-
+    timer_set_mode(TIM1, TIM_CR1_CKD_CK_INT, TIM_CR1_CMS_CENTER_1, TIM_CR1_DIR_UP);
+    // Set output channel 2 to PWM mode 2 (inactive when counter < CR)
+    timer_set_oc_mode(TIM1, TIM_OC2, TIM_OCM_PWM2);
+    // Enable output channel 2
+    timer_enable_oc_output(TIM1, TIM_OC2);
+    // Active high
+    timer_set_oc_polarity_high(TIM1, TIM_OC2N);
+    // Enable auto-reload buffering
+    timer_enable_preload(TIM1);
+    timer_enable_oc_preload(TIM1, TIM_OC2);
+    // Period in clock ticks
+    timer_set_period(TIM1, 0xFF);
+    // Set output-compare value
+    timer_set_oc_value(TIM1, TIM_OC2, 0xFF);
+    // Update generation event
+    timer_generate_event(TIM1, TIM_EGR_UG);
+    // Enable
+    timer_enable_counter(TIM1);
     printf("done.\n");
 }
 
-/*
- * Switch ROM used for LCD.
- * Rom must be between 1 and 3.
- */
-void lcd_rom_select(uint8_t rom) {
-    // Convert rom to cmd
-    if (rom == 2) {
-        rom = 0x0C;
-    } else if (rom == 1) {
-        rom = 0x07;
-    } else {
-        rom = 0x0;
-    }
-
-    uint8_t rom_cmd[] = {
-        0x80, 0x3A, // RE = 1
-        0x80, 0x72, // Rom select
-        0xC0, rom, // ROM Id
-        0x00, 0x38, // RE = 0
-    };
-    if (NEST_I2C_XFER_OK != n_i2c_transfer(LCD_I2C_ADDR, rom_cmd, 4, NULL, 0)) {
-        n_log("Failed to change lcd rom\n");
-    }
+void LCD::clear() {
+    n_log("LCD::clear unimplemented\n");
 }
 
-void lcd_clear() {
-    if (disable_lcd) {
-        return;
-    }
-    uint8_t cmd[2];
-    cmd[0] = 0x00; // Command, no continuation
-    cmd[1] = 0x01; // Clear display, cursor return
-    if (NEST_I2C_XFER_OK != n_i2c_transfer(LCD_I2C_ADDR, cmd, sizeof(cmd), NULL, 0)) {
-        n_log("Failed to clear lcd\n");
-    }
+void LCD::draw_text(const char *text, uint8_t x, uint8_t y) {
+    n_log("LCD::draw_text unimplemented\n");
 }
 
-uint8_t lcd_home() {
-    uint8_t cmd[2];
-    cmd[0] = 0x00; // Command, no continuation
-    cmd[1] = 0x02; // Cursor to 0,0
-    if (NEST_I2C_XFER_OK != n_i2c_transfer(LCD_I2C_ADDR, cmd, sizeof(cmd), NULL, 0)) {
-        n_log("Failed to home cursor\n");
-        return 1;
-    }
-    return 0;
+void LCD::draw_icon(const uint8_t *bmp, uint8_t w, uint8_t h, uint8_t x, uint8_t y) {
+    n_log("LCD::draw_icon unimplemented\n");
 }
 
-uint8_t lcd_set_line(uint8_t line) {
-    // 0 <= line <= 3
-    line &= 0x3;
-    uint8_t cmd[2];
-    cmd[0] = 0x00; // Command, no continuation
-    cmd[1] = 0x80 + (line << 5);
-    if (NEST_I2C_XFER_OK != n_i2c_transfer(LCD_I2C_ADDR, cmd, sizeof(cmd), NULL, 0)) {
-        n_log("Failed to set line\n");
-        return 1;
-    }
-    return 0;
+void LCD::render() {
+    n_log("LCD::render unimplemented\n");
 }
 
-static uint64_t last_display_update = -LCD_UPDATE_MS;
-void lcd_update() {
-    if (millis() - last_display_update < LCD_UPDATE_MS) {
+void LCD::update() {
+    // If not time to update, return.
+    if (millis() - _last_display_update < LCD_UPDATE_MS) {
         return;
     }
 
-    if (disable_lcd)
-        return;
+    // Bump the update ts
+    _last_display_update = millis();
+}
 
-    last_display_update = millis();
-
-    uint8_t data[22] = {};
-    data [0] = 0x40;
-
-    // Line 1
-    const uint8_t celsius = 0;
-    const uint8_t relay_on = 1;
-    uint8_t len;
-    double temp, rh;
-    sht_read(SHT_0_ADDR, &temp, &rh);
-    if (lcd_set_line(0)) { return; }
-    memset(&data[1], 0x20, 20);
-    if (celsius) {
-        len = snprintf(reinterpret_cast<char *>(&data[1]), 21,
-            "   %2.1fC  (%2.1fC)",
-            temp, 22.0
-        );
-        data[len+1] = ' ';
-    } else {
-        len = snprintf(reinterpret_cast<char *>(&data[1]), 21,
-            "    %3.0fF  (%.0fF)",
-            71.65, 65.0
-        );
-        data[len+1] = ' ';
-    }
-    if (relay_on) {
-        data[1] = 0x12;
-        data[20] = 0x12;
-    }
-    if (NEST_I2C_XFER_OK != n_i2c_transfer(LCD_I2C_ADDR, data, sizeof(data)-1, NULL, 0)) {
-        n_log("LCD update failed\n");
-        return;
-    }
-
-    // Line 2
-    if (lcd_set_line(1)) { return; }
-    memset(&data[1], 0x20, 20);
-    uint16_t brightness = adc_read();
-    double brightness_perc = (brightness * 100) / 4096.0;
-    len = snprintf(reinterpret_cast<char *>(&data[1]), 21,
-        " Rh: %2.0f%%  Lux: %2.0f%%",
-        rh, brightness_perc
-    );
-    data[len+1] = ' ';
-    if (NEST_I2C_XFER_OK != n_i2c_transfer(LCD_I2C_ADDR, data, sizeof(data)-1, NULL, 0)) {
-        n_log("LCD update failed\n");
-        return;
-    }
-
-    // Line 3
-    if (lcd_set_line(2)) { return; }
-    memset(&data[1], 0x20, 20);
-    const time_t now = n_est() / 1000;
-    struct tm local = *localtime(&now);
-    len = strftime(reinterpret_cast<char *>(&data[1]), 21,
-        "%Y-%m-%d  %H:%M:%S", &local);
-    data[len+1] = ' ';
-    if (NEST_I2C_XFER_OK != n_i2c_transfer(LCD_I2C_ADDR, data, sizeof(data)-1, NULL, 0)) {
-        n_log("LCD update failed\n");
-        return;
-    }
-
-    // Line 4
-    if (lcd_set_line(3)) { return; }
-    memset(&data[1], 0x20, 20);
-    len = snprintf(reinterpret_cast<char *>(&data[1]), 21,
-        "Up: %6lld   Wifi OK", millis() / 1000
-    );
-    data[len+1] = ' ';
-    if (NEST_I2C_XFER_OK != n_i2c_transfer(LCD_I2C_ADDR, data, sizeof(data)-1, NULL, 0)) {
-        n_log("LCD update failed\n");
-        return;
-    }
+void LCD::set_backlight(uint8_t brightness) {
+    timer_set_oc_value(TIM1, TIM_OC2, brightness);
 }
