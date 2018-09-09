@@ -99,6 +99,7 @@ uint64_t last_packet = 0;
 WifiFsm wifi_fsm;
     double temp, rh;
 
+uint64_t last_print = 0;
 void nest_event_loop() {
     if (millis() - last_read_0 > READ_0_RATE_MS) {
         if (sht_read(SHT_1_ADDR, &temp, &rh)) {
@@ -122,4 +123,13 @@ void nest_event_loop() {
 
     // Tickle the watchdog
     iwdg_reset();
+
+    if (millis() - last_print > 1000) {
+        last_print = millis();
+        const time_t now = n_utc() / 1000;
+        struct tm local = *localtime(&now);
+        char buf[20];
+        strftime(buf, 21, "%Y-%m-%d  %H:%M:%S", &local);
+        printf("[%s]\r", buf);
+    }
 }
