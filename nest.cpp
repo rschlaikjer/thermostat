@@ -59,6 +59,20 @@ void nest_init() {
     n_log("Unique chip ID: 0x%08lx%08lx%08lx\n",
         STM32F0_CHIP_ID[0], STM32F0_CHIP_ID[1], STM32F0_CHIP_ID[2]);
 
+    // Check the IWDG state
+    uint32_t *option_data = reinterpret_cast<uint32_t*>(0x1FFFF800);
+    n_log("Option bytes:\n", *option_data);
+    for (uint8_t i = 0; i < 4; i++) {
+        n_log("    0x%08lx: %08lx\n",
+            option_data + sizeof(uint32_t) * i,
+            option_data[i]);
+    }
+    bool hw_iwdg_enabled = (
+        *option_data & (1 << 24) && !(*option_data & (1 << 16))
+    );
+    n_log("Hardware watchdog ");
+    printf(hw_iwdg_enabled ? "enabled\n" : "DISABLED\n");
+
     // Initialize peripherals
     interrupt_init();
     n_i2c_setup();
