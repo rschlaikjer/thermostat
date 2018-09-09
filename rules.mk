@@ -271,7 +271,14 @@ option_bytes_reset:
 		-ex 'attach 1' \
 		-ex 'set mem inaccessible-by-default off' \
 		-ex 'mon option erase' \
-		-ex 'mon option 0x1FFFF800 0x55AA'
+		-ex 'mon option 0x1FFFF800 0x55AA' \
+		-ex 'mon option 0x1FFFF802 0x00FF' \
+		-ex 'mon option 0x1FFFF804 0x00FF' \
+		-ex 'mon option 0x1FFFF806 0x00FF' \
+		-ex 'mon option 0x1FFFF808 0x00FF' \
+		-ex 'mon option 0x1FFFF80A 0x00FF' \
+		-ex 'mon option 0x1FFFF80C 0x00FF' \
+		-ex 'mon option 0x1FFFF80E 0x00FF'
 
 .PHONY: images clean stylecheck styleclean elf bin hex srec list
 
