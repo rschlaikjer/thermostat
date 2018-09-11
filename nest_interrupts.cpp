@@ -21,6 +21,15 @@ void exti4_15_isr() {
     }
 }
 
+// LCD transfer DMA interrupt
+void dma1_channel2_3_isr(void) {
+    // Clear transfer complete interrupt flag
+    if (dma_get_interrupt_flag(DMA1, DMA_CHANNEL3, DMA_TCIF)) {
+        dma_clear_interrupt_flags(DMA1, DMA_CHANNEL3, DMA_TCIF);
+        lcd.dma_xfer_complete();
+    }
+}
+
 void interrupt_init() {
     n_log("Initializing interrupts... ");
 

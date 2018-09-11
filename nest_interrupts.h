@@ -2,11 +2,13 @@
 #define NEST_INTERRUPTS_H
 
 #include <libopencm3/stm32/gpio.h>
+#include <libopencm3/stm32/dma.h>
 #include <libopencm3/cm3/nvic.h>
 #include <libopencm3/stm32/exti.h>
 
 #include "winc1500/bsp/include/nm_bsp_opencm3.h"
 #include "nest_uart.h"
+#include "nest_lcd.h"
 
 void interrupt_init(void);
 

@@ -6,10 +6,12 @@
 #include <time.h>
 
 #include <libopencm3/stm32/rcc.h>
+#include <libopencm3/stm32/dma.h>
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/timer.h>
+#include <libopencm3/cm3/nvic.h>
 
-#include "nest_i2c.h"
+#include "nest_spi.h"
 #include "nest_realtime.h"
 #include "nest_sht.h"
 #include "nest_adc.h"
@@ -21,13 +23,65 @@
 #define LCD_WIDTH 128
 #define LCD_HEIGHT 64
 
+#define CMD_DISPLAY_OFF   0xAE
+#define CMD_DISPLAY_ON    0xAF
+
+#define CMD_SET_DISP_START_LINE  0x40
+#define CMD_SET_PAGE  0xB0
+
+#define CMD_SET_COLUMN_UPPER  0x10
+#define CMD_SET_COLUMN_LOWER  0x00
+
+#define CMD_SET_ADC_NORMAL  0xA0
+#define CMD_SET_ADC_REVERSE 0xA1
+
+#define CMD_SET_DISP_NORMAL 0xA6
+#define CMD_SET_DISP_REVERSE 0xA7
+
+#define CMD_SET_ALLPTS_NORMAL 0xA4
+#define CMD_SET_ALLPTS_ON  0xA5
+#define CMD_SET_BIAS_9 0xA2
+#define CMD_SET_BIAS_7 0xA3
+
+#define CMD_RMW  0xE0
+#define CMD_RMW_CLEAR 0xEE
+#define CMD_INTERNAL_RESET  0xE2
+#define CMD_SET_COM_NORMAL  0xC0
+#define CMD_SET_COM_REVERSE  0xC8
+#define CMD_SET_POWER_CONTROL  0x28
+#define CMD_SET_RESISTOR_RATIO  0x20
+#define CMD_SET_VOLUME_FIRST  0x81
+#define CMD_SET_VOLUME_SECOND  0
+#define CMD_SET_STATIC_OFF  0xAC
+#define CMD_SET_STATIC_ON  0xAD
+#define CMD_SET_STATIC_REG  0x0
+#define CMD_SET_BOOSTER_FIRST  0xF8
+#define CMD_SET_BOOSTER_234  0
+#define CMD_SET_BOOSTER_5  1
+#define CMD_SET_BOOSTER_6  3
+#define CMD_NOP  0xE3
+#define CMD_TEST  0xF0
+
+#define LCD_PORT_RESET GPIOA
+#define LCD_PIN_RESET GPIO8
+#define LCD_PORT_CS GPIOB
+#define LCD_PIN_CS GPIO2
+#define LCD_PORT_CMD_DATA GPIOA
+#define LCD_PIN_CMD_DATA GPIO5
+
+#ifdef __cplusplus
+
 class LCD {
     public:
         void init();
         void update();
+        void powerOn();
+        void dma_write();
+        void dma_xfer_complete();
     private:
-        uint8_t _pixels[LCD_WIDTH * LCD_HEIGHT / 8];
+        volatile uint8_t _pixels[LCD_WIDTH * LCD_HEIGHT / 8];
         uint64_t _last_display_update = -LCD_UPDATE_MS;
+        volatile bool _dma_active = false;
 
         // Clear pixel buffer
         void clear();
@@ -43,6 +97,22 @@ class LCD {
 
         // Set the backlight brightness
         void set_backlight(uint8_t brightness);
+
+        void dma_init();
+        void spi_init();
+
+        // Pin management
+        void cs_select();
+        void cs_deselect();
+        void reset_enable();
+        void reset_disable();
+        void mode_cmd();
+        void mode_data();
+        void write(uint8_t b);
 };
+
+extern LCD lcd;
+
+#endif // __cplusplus
 
 #endif // NEST_LCD_H
