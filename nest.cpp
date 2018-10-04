@@ -42,7 +42,7 @@ void nest_init() {
     // Configure and enable watchdog timer
     iwdg_set_period_ms(WATCHDOG_TIMEOUT_MS);
     iwdg_reset();
-    // iwdg_start();
+    iwdg_start();
 
     // Enable systick to provide real-time-ish clocl
     systick_setup();
