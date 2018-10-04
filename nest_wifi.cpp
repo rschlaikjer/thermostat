@@ -136,6 +136,8 @@ void WifiFsm::ensure_socket_connected() {
         _sock = socket(AF_INET, SOCK_STREAM, 0);
         _sock_bound = false;
         _sock_is_binding = false;
+        _resolved_hostname = false;
+        _hostname_is_resolving = false;
         if (_sock < 0) {
             // Error creating socket
             n_log("Failed to create socket: %s\n", socket_error_str(_sock));
@@ -152,13 +154,26 @@ void WifiFsm::ensure_socket_connected() {
         if (!_hostname_is_resolving) {
             int8_t resolv_result = gethostbyname((uint8_t*) N_SECRET_SERVER_HOSTNAME);
             if (resolv_result < 0) {
+                // If we fail to resolve the name, there's not much we can do
+                // other than try to reset the wifi connection
                 n_log("Failed to resolve hostname %s: %s\n",
                     N_SECRET_SERVER_HOSTNAME, socket_error_str(resolv_result));
                 _resolved_hostname = false;
                 _hostname_is_resolving = false;
+                reset_socket();
+                Wifi.hard_reset();
             } else {
+                n_log("Resolving '%s'\n", N_SECRET_SERVER_HOSTNAME);
                 _resolved_hostname = false;
                 _hostname_is_resolving = true;
+                _hostname_resolve_start = millis();
+            }
+        } else {
+            // Hostname still resolving - time out after 10s
+            if (millis() - _hostname_resolve_start > HOSTNAME_RESOLV_TIMEOUT) {
+                n_log("DNS resolve timed out\n");
+                _resolved_hostname = false;
+                _hostname_is_resolving = false;
             }
         }
     }
@@ -217,16 +232,38 @@ void WifiFsm::send_rh(double rh) {
     sock_send((float) rh);
 }
 
-void WifiFsm::send_brightness(uint16_t brightness) {
+void WifiFsm::send_brightness(float brightness) {
     sock_send((uint8_t) CMD_LIGHT);
-    sock_send(_htonl((uint32_t) brightness));
+    sock_send((float) brightness);
+}
+
+void WifiFsm::send_uptime(uint64_t uptime) {
+    sock_send((uint8_t) CMD_UPTIME);
+    sock_send(uptime);
+}
+
+void WifiFsm::send_log_msg(const char *msg, int len) {
+    return;
+    if (len <= 0) return;
+    if (len > 0xFFFF) return;
+    if ( _sock < 0 || !_sock_bound) return;
+    uint8_t prelude[3];
+    prelude[0] = CMD_LOG;
+    prelude[1] = (((uint16_t) len) >> 8) & 0xFF;
+    prelude[2] = ((uint16_t) len) & 0xFF;
+    if (send(_sock, prelude, 3, 0)) return;
+    send(_sock, (void*)msg, len, 0);
 }
 
 void WifiFsm::send_hello() {
-    sock_send((uint8_t) CMD_HELLO);
-    // sock_send((uint8_t) 12); // Number of bytes in ID
-    // sock_send(reinterpret_cast<uint8_t*>(STM32F0_UUID_ADDR), 12);
-    sock_send(reinterpret_cast<uint8_t*>(STM32F0_UUID_ADDR), 10);
+    // Send the protocol knock
+    sock_send("NEST");
+    sock_send((uint8_t) NEST_PROTOCOL_VER);
+
+    // Send the node ID
+    sock_send((uint8_t) CMD_NODE_ID);
+    sock_send((uint8_t) 12); // Number of bytes in ID
+    sock_send(reinterpret_cast<uint8_t*>(STM32F0_UUID_ADDR), 12);
 }
 
 void WifiFsm::sock_send(float v) {
@@ -243,6 +280,14 @@ void WifiFsm::sock_send(uint32_t v) {
     sock_send(reinterpret_cast<uint8_t*>(&v), sizeof(uint32_t));
 }
 
+void WifiFsm::sock_send(uint64_t v) {
+    sock_send(reinterpret_cast<uint8_t*>(&v), sizeof(uint64_t));
+}
+
+void WifiFsm::sock_send(const char *str) {
+    sock_send((uint8_t *) str, strlen(str));
+}
+
 void WifiFsm::sock_send(uint8_t c) {
     sock_send(&c, 1);
 }
@@ -250,7 +295,7 @@ void WifiFsm::sock_send(uint8_t c) {
 void WifiFsm::sock_send(uint8_t *data, size_t bytes) {
     // If the socket isn't connected, just drop data
     if ( _sock < 0 || !_sock_bound) {
-        n_log("Socket down, dropping data\n");
+        n_log("Socket down, dropping data\r");
         // If it's been down for some time, force a reset
         if (millis() - _last_data_sent > SOCKET_MAX_DOWNTIME_MS) {
             reset_socket();
@@ -303,3 +348,5 @@ void WifiFsm::process_received_data() {
         n_log("Failed to recv data: %s\n", socket_error_str(ret));
     }
 }
+
+WifiFsm wifi_fsm;

@@ -85,8 +85,6 @@ void nest_init() {
 
     // Enable wifi
     Wifi.init();
-    Wifi.deep_sleep_mode_enable();
-
 }
 
 #define READ_0_RATE_MS 3000
@@ -96,8 +94,7 @@ uint64_t last_read_0 = 0;
 uint64_t last_read_1 = 0;
 uint64_t last_packet = 0;
 
-WifiFsm wifi_fsm;
-    double temp, rh;
+double temp, rh;
 
 uint64_t last_print = 0;
 void nest_event_loop() {
@@ -108,7 +105,10 @@ void nest_event_loop() {
         }
 
         uint16_t brightness = adc_read();
-        wifi_fsm.send_brightness(brightness);
+        float brightness_perc = (((float) brightness) * 100) / 4096;
+        wifi_fsm.send_brightness(brightness_perc);
+
+        wifi_fsm.send_uptime(millis());
 
         last_read_0 = millis();
     }

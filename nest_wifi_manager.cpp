@@ -70,12 +70,26 @@ uint8_t WifiMgr::init() {
     }
 
     // Initialize socket callback
+    socketDeinit();
     socketInit();
     registerSocketCallback(n_wifi_socket_cb, n_wifi_resolv_cb);
 
     printf("success.\n");
     _initialized = true;
+
+    deep_sleep_mode_enable();
+
     return 0;
+}
+
+void WifiMgr::hard_reset() {
+    // Put chip back into reset
+    n_log("Performing hard-reset of wifi\n");
+    nm_bsp_reset();
+    _initialized = false;
+    _connection_state = M2M_WIFI_UNDEF;
+    _has_ip_addr = false;
+    _last_ntp_sync = 0;
 }
 
 void WifiMgr::led_enable_wifi() { m2m_periph_gpio_set_val(M2M_PERIPH_GPIO4, 0); }
@@ -86,6 +100,11 @@ void WifiMgr::led_disable_act() { m2m_periph_gpio_set_val(M2M_PERIPH_GPIO5, 1); 
 void WifiMgr::led_disable_error() { m2m_periph_gpio_set_val(M2M_PERIPH_GPIO6, 1); }
 
 uint8_t WifiMgr::connect(const char *ssid, const char *psk) {
+    // Make sure that wifi is actually initialized
+    if (!_initialized) {
+        init();
+    }
+
     // Begin WPA2 connection
     n_log("Connecting to SSID '%s'\n", ssid);
     int ret = m2m_wifi_connect(
@@ -379,6 +398,7 @@ const char *m2_sta_cmd_to_string(tenuM2mStaCmd cmd) {
 void WifiMgr::register_socket_handler(SOCKET sock, WifiFsm *fsm) {
     _socket_handlers[sock] = fsm;
 }
+
 void WifiMgr::unregister_socket_handler(SOCKET sock, WifiFsm *fsm) {
     if (_socket_handlers[sock] == fsm) {
         _socket_handlers[sock] = NULL;

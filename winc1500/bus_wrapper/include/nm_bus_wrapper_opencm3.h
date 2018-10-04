@@ -8,7 +8,8 @@
 #include "../nest_spi.h"
 
 #define NM_BUS_MAX_TRX_SZ   256
+#define SPI_TIMEOUT_MS   100
 
-uint8_t spi_xfer8(uint8_t write);
+int spi_xfer8(uint8_t write, uint8_t *read);
 
 #endif	/*_NM_BUS_WRAPPER_OPENCM3_H_*/

@@ -10,16 +10,21 @@ tstrNmBusCapabilities egstrNmBusCapabilities = {
     NM_BUS_MAX_TRX_SZ
 };
 
-uint8_t spi_xfer8(uint8_t write) {
+int spi_xfer8(uint8_t write, uint8_t *read) {
     // Write the data
     while (!(SPI_SR(NEST_SPI) & SPI_SR_TXE));
     SPI_DR8(NEST_SPI) = write;
 
     // Read a response
-    while (!(SPI_SR(NEST_SPI) & SPI_SR_RXNE));
-    uint8_t r =  SPI_DR8(NEST_SPI);
+    uint64_t deadline = millis() + SPI_TIMEOUT_MS;
+    while (!(SPI_SR(NEST_SPI) & SPI_SR_RXNE) && millis() < deadline);
+    if (SPI_SR(NEST_SPI) & SPI_SR_RXNE) {
+        *read = SPI_DR8(NEST_SPI);
+    } else {
+        return M2M_ERR_BUS_FAIL;
+    }
 
-    return r;
+    return M2M_SUCCESS;
 }
 
 static int8_t spi_rw(uint8_t* pu8Mosi, uint8_t* pu8Miso, uint16_t u16Sz) {
@@ -41,7 +46,9 @@ static int8_t spi_rw(uint8_t* pu8Mosi, uint8_t* pu8Miso, uint16_t u16Sz) {
     gpio_clear(gWincCSPort, gWincCSPin);
 
     while (u16Sz) {
-        *pu8Miso = spi_xfer8(*pu8Mosi);
+        if (spi_xfer8(*pu8Mosi, pu8Miso) != M2M_SUCCESS) {
+            return M2M_ERR_BUS_FAIL;
+        }
 
         u16Sz--;
         if (!u8SkipMiso)

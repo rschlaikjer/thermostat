@@ -74,6 +74,8 @@ class WifiMgr {
         void register_socket_handler(SOCKET sock, WifiFsm *fsm);
         void unregister_socket_handler(SOCKET sock, WifiFsm *fsm);
 
+        void hard_reset();
+
     private:
         bool _initialized = false;
         tenuM2mConnState _connection_state = M2M_WIFI_UNDEF;
