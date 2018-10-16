@@ -1,4 +1,7 @@
 #include "nest_lcd.h"
+#include "font_8_13.h"
+
+#define LCD_SPI SPI1
 
 void LCD::init() {
     n_log("Initializing lcd... ");
@@ -59,11 +62,11 @@ void LCD::spi_init() {
     gpio_set_af(GPIOB, GPIO_AF0, GPIO3 | GPIO4 | GPIO5);
 
     // Reset SPI, SPI_CR1 register cleared, SPI is disabled
-    spi_reset(SPI1);
+    spi_reset(LCD_SPI);
 
     // Set main SPI settings
     spi_init_master(
-        SPI1,
+        LCD_SPI,
         SPI_CR1_BAUDRATE_FPCLK_DIV_8,
         SPI_CR1_CPOL_CLK_TO_0_WHEN_IDLE,
         SPI_CR1_CPHA_CLK_TRANSITION_1,
@@ -78,18 +81,18 @@ void LCD::spi_init() {
      * ourselves this bit needs to be at least set to 1, otherwise the spi
      * peripheral will not send any data out.
      */
-    spi_enable_software_slave_management(SPI1);
-    spi_set_nss_high(SPI1);
+    spi_enable_software_slave_management(LCD_SPI);
+    spi_set_nss_high(LCD_SPI);
 
     // Data transfers are bidirectional
-    spi_set_full_duplex_mode(SPI1);
-    spi_set_unidirectional_mode(SPI1); // bidirectional but in 3-wire
+    spi_set_full_duplex_mode(LCD_SPI);
+    spi_set_unidirectional_mode(LCD_SPI); // bidirectional but in 3-wire
 
     // Data is 8 bits
-    spi_set_data_size(SPI1, SPI_CR2_DS_8BIT);
-    spi_fifo_reception_threshold_8bit(SPI1);
+    spi_set_data_size(LCD_SPI, SPI_CR2_DS_8BIT);
+    spi_fifo_reception_threshold_8bit(LCD_SPI);
 
-    spi_enable(SPI1);
+    spi_enable(LCD_SPI);
 }
 
 void LCD::clear() {
@@ -97,7 +100,39 @@ void LCD::clear() {
 }
 
 void LCD::draw_text(const char *text, uint8_t x, uint8_t y) {
-    n_log("LCD::draw_text unimplemented\n");
+    uint8_t i = 0;
+    while (*text) {
+        if (font_ascii[*text]) {
+            draw_glyph(font_ascii[*text], x + (8 * i), y);
+        }
+        i++;
+        text++;
+    }
+}
+void LCD::draw_glyph(const uint8_t *glyph, uint8_t x, uint8_t y) {
+    // Input x, y are assuming 0,0 is top left corner when display is horizontal.
+    // Pixels are actually addressed assuming 0,0 is top left when display is vertical
+    // To convert;
+    // pixel_n = x * buf_height + (buf_height - y)
+    // Fonts are arranged as 8bit wide, 13bit high glyphs
+    for (uint8_t rown = 0; rown < 13; rown++) {
+        const uint8_t row = glyph[rown];
+        for (uint8_t blit = 0; blit < 8; blit++) {
+            // Convert that to a byte + bit
+            const uint16_t py = y + rown;
+            const uint16_t px = x + blit;
+            const uint16_t byten = (py / 8) * 128 + px;
+            const uint16_t bitn = py % 8;
+            // Turn on that bit in our buffer
+            if (row & (1 << (7 - blit))) {
+              _pixels[byten] |= 1 << (7 - bitn);
+            }
+        }
+    }
+}
+
+uint16_t LCD::px_offset_for_xy(uint16_t x, uint16_t y) {
+    return (y / 8) * 128 + x;
 }
 
 void LCD::draw_icon(const uint8_t *bmp, uint8_t w, uint8_t h, uint8_t x, uint8_t y) {
@@ -117,6 +152,7 @@ void LCD::powerOn() {
 
     mode_cmd();
 
+    /*
     write(CMD_SET_BIAS_7);
     write(CMD_SET_ADC_NORMAL);
     write(CMD_SET_COM_NORMAL);
@@ -131,13 +167,41 @@ void LCD::powerOn() {
 
     write(CMD_SET_RESISTOR_RATIO | 0x6);
 
+    write(CMD_SET_ALLPTS_ON);
+    */
+
+    write(0xa2); // LCD bias set at 1/9
+    write(0xa0); // ADC select in normal mode
+    write(0xc8); // Common output mode select: reverse direction (last 3 bits are ignored)
+    write(0xc0); // COM output scan direction
+
+    write(0x40); // Operating mode
+    write(0x25); //  Resistor ratio
+
+    set_contrast(0x19); // Set contrast, value experimentally determined, can set to 6-bit value, 0 to 63
+
+    write(0x2f); // Power control set to operating mode: 7
+    write(0xaf); // Display on
+
+    write(0xa4); // All points off
+
     cs_deselect();
 }
 
+void LCD::set_contrast(uint8_t val) {
+    mode_cmd();
+    write(0x81);
+    if (val > 63) {
+        write(63);
+    } else {
+        write(val);
+    }
+}
+
 void LCD::write(uint8_t b) {
-    while (!(SPI_SR(SPI1) & SPI_SR_TXE));
-    SPI_DR8(SPI1) = b;
-    while (SPI_SR(SPI1) & SPI_SR_BSY);
+    while (!(SPI_SR(LCD_SPI) & SPI_SR_TXE));
+    SPI_DR8(LCD_SPI) = b;
+    while (SPI_SR(LCD_SPI) & SPI_SR_BSY);
 }
 
 void LCD::update() {
@@ -146,15 +210,61 @@ void LCD::update() {
         return;
     }
 
+    // If it's time to update but a DMA transfer is still happening
+    // (this would be weird given DMA takes ~1ms) then skip the update
+    if (_dma_active) {
+        n_log("Skipping LCD update: DMA in progress\n");
+        return;
+    }
+
     // Bump the update ts
     _last_display_update = millis();
 
-    printf(".");
+    // Clear our buffer
+    memset(((void *)_pixels), 0x00, (LCD_WIDTH * LCD_HEIGHT) / 8);
 
+    // Small buffer for formatting
+    char buf[32];
+
+    // Draw the current temperature
+    sprintf(buf, "%2.1fF", 69.4);
+    draw_text(buf, 8, 0);
+
+    // Target temp
+    sprintf(buf, "(%2.1fF)", 62.0);
+    draw_text(buf, 128 - (strlen(buf) + 1) * 8, 0);
+
+    // Draw the target temperature
+
+    // RH
+
+    // Lux
+
+    // Date & time
+    const time_t now = n_utc() / 1000;
+    struct tm local = *localtime(&now);
+    strftime(buf, 21, "%H:%M %d/%m/%Y", &local);
+    draw_text(buf, 0, 53);
+
+    // Home the data cursor to the origin
     cs_select();
-    gpio_set(GPIOA, GPIO5); // Data mode
-    write(0x55);
+    const uint16_t page_size = 128;
+    const uint8_t page_count = 8;
+    for (uint16_t page = 0; page < page_count; page++) {
+        mode_cmd();
+        write(CMD_SET_PAGE | (7 - page));
+        write(0x00);
+        write(0x10);
+        write(CMD_SET_DISP_START_LINE);
+        mode_data();
+        for (uint16_t i = page * page_size; i < (page + 1) * page_size; i++) {
+            write(_pixels[i]);
+        }
+    }
     cs_deselect();
+
+    // Start a DMA transfer to fill in the pixel data
+    //dma_write();
 }
 
 void LCD::dma_init() {
@@ -199,6 +309,8 @@ void LCD::dma_write() {
 
     // Select the LCD
     cs_select();
+    // Data mode
+    mode_data();
     // Mark DMA as happening
     _dma_active = true;
     // Begin

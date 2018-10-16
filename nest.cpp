@@ -82,6 +82,7 @@ void nest_init() {
     adc_setup();
     n_relay_init();
     lcd.init();
+    lcd.powerOn();
 
     // Enable wifi
     Wifi.init();
