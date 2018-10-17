@@ -36,7 +36,8 @@ OBJS		+= $(BINARY).o \
 			   $(BINARY)_wifi.o \
 			   $(BINARY)_wifi_manager.o \
 			   $(BINARY)_wifi_firmware.o \
-			   $(BINARY)_interrupts.o
+			   $(BINARY)_interrupts.o \
+			   $(BINARY)_sensors.o \
 
 # WINC libraries
 OBJS	+= ./winc1500/socket/source/socket.o \

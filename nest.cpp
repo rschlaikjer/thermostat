@@ -11,6 +11,7 @@ extern "C" {
 }
 
 LCD lcd;
+class Sensors Sensors;
 
 static void clock_setup(void) {
     // Set clock at 48MHz from internal oscillator
@@ -114,6 +115,10 @@ void nest_event_loop() {
         last_read_0 = millis();
     }
 
+    // Update temp, RH, brightness
+    Sensors.update();
+
+    // Refresh display
     lcd.update();
 
     // Handle base wifi events

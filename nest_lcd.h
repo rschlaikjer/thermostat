@@ -13,8 +13,7 @@
 
 #include "nest_spi.h"
 #include "nest_realtime.h"
-#include "nest_sht.h"
-#include "nest_adc.h"
+#include "nest_sensors.h"
 
 #define LCD_UPDATE_MS 1000
 
@@ -27,6 +26,8 @@
 #define LCD_PIN_CS GPIO2
 #define LCD_PORT_CMD_DATA GPIOA
 #define LCD_PIN_CMD_DATA GPIO5
+#define LCD_PORT_UNITSEL GPIOB
+#define LCD_PIN_UNITSEL GPIO1
 
 #define CMD_SET_DISP_START_LINE  0x40
 #define CMD_SET_PAGE  0xB0
@@ -42,6 +43,8 @@ class LCD {
         void powerOn();
         void dma_write();
         void dma_xfer_complete();
+        void set_backlight(uint8_t brightness);
+        bool use_celsius();
     private:
         volatile uint8_t _pixels[LCD_WIDTH * LCD_HEIGHT / 8];
         uint64_t _last_display_update = -LCD_UPDATE_MS;
@@ -63,7 +66,6 @@ class LCD {
         void render();
 
         // Set the backlight brightness
-        void set_backlight(uint8_t brightness);
         void set_contrast(uint8_t val);
 
         void dma_init();

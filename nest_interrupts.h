@@ -8,7 +8,10 @@
 
 #include "winc1500/bsp/include/nm_bsp_opencm3.h"
 #include "nest_uart.h"
+
+#ifdef __cplusplus
 #include "nest_lcd.h"
+#endif
 
 void interrupt_init(void);
 

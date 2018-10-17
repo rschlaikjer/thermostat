@@ -22,6 +22,7 @@ void LCD::init() {
     gpio_set_af(GPIOA, GPIO_AF2, GPIO9);
     gpio_mode_setup(GPIOA, GPIO_MODE_AF, GPIO_PUPD_NONE, GPIO9);
 
+    rcc_periph_clock_enable(RCC_TIM1);
     timer_set_mode(TIM1, TIM_CR1_CKD_CK_INT, TIM_CR1_CMS_CENTER_1, TIM_CR1_DIR_UP);
     // Set output channel 2 to PWM mode 2 (inactive when counter < CR)
     timer_set_oc_mode(TIM1, TIM_OC2, TIM_OCM_PWM2);
@@ -34,6 +35,7 @@ void LCD::init() {
     timer_enable_oc_preload(TIM1, TIM_OC2);
     // Period in clock ticks
     timer_set_period(TIM1, 0xFF);
+    timer_enable_break_main_output(TIM1);
     // Set output-compare value
     timer_set_oc_value(TIM1, TIM_OC2, 0xFF);
     // Update generation event
@@ -46,7 +48,14 @@ void LCD::init() {
     // Init DMA channel
     dma_init();
 
+    // Unit sense
+    gpio_mode_setup(LCD_PORT_UNITSEL, GPIO_MODE_INPUT, GPIO_PUPD_PULLDOWN, LCD_PIN_UNITSEL);
+
     printf("done.\n");
+}
+
+bool LCD::use_celsius() {
+    return gpio_get(LCD_PORT_UNITSEL, LCD_PIN_UNITSEL) == 0;
 }
 
 void LCD::spi_init() {
@@ -178,7 +187,7 @@ void LCD::powerOn() {
     write(0x40); // Operating mode
     write(0x25); //  Resistor ratio
 
-    set_contrast(0x19); // Set contrast, value experimentally determined, can set to 6-bit value, 0 to 63
+    set_contrast(0x10); // Set contrast, value experimentally determined, can set to 6-bit value, 0 to 63
 
     write(0x2f); // Power control set to operating mode: 7
     write(0xaf); // Display on
@@ -223,25 +232,42 @@ void LCD::update() {
     // Clear our buffer
     memset(((void *)_pixels), 0x00, (LCD_WIDTH * LCD_HEIGHT) / 8);
 
+    // Get the current unit
+    const bool is_celsius = use_celsius();
+    const char unit = is_celsius ? 'C' : 'F';
+
     // Small buffer for formatting
     char buf[32];
 
     // Draw the current temperature
-    sprintf(buf, "%2.1fF", 69.4);
+    if (Sensors.has_temp()) {
+        float temp = Sensors.get_temp();
+        if (!is_celsius)
+            temp = (temp * (9.0/5.0)) + 32.0;
+        sprintf(buf, "%2.1f%c", temp, unit);
+    } else {
+        sprintf(buf, "--.-%c", unit);
+    }
     draw_text(buf, 8, 0);
 
     // Target temp
-    sprintf(buf, "(%2.1fF)", 62.0);
+    float target_temp = 18;
+    if (!is_celsius)
+        target_temp = (target_temp * (9.0/5.0)) + 32.0;
+    sprintf(buf, "(%2.1f%c)", target_temp, unit);
     draw_text(buf, 128 - (strlen(buf) + 1) * 8, 0);
 
-    // Draw the target temperature
+    // RH + Lux
+    if (Sensors.has_rh()) {
+        sprintf(buf, "%2.0f%% RH %2.0f%% LUX", Sensors.get_rh(), Sensors.get_brightness());
+    } else {
+        sprintf(buf, "--%% RH %2.0f%% LUX", Sensors.get_brightness());
+    }
+    draw_text(buf, 8, 14);
 
-    // RH
-
-    // Lux
 
     // Date & time
-    const time_t now = n_utc() / 1000;
+    const time_t now = n_est() / 1000;
     struct tm local = *localtime(&now);
     strftime(buf, 21, "%H:%M %d/%m/%Y", &local);
     draw_text(buf, 0, 53);
@@ -330,7 +356,7 @@ void LCD::dma_xfer_complete() {
 }
 
 void LCD::set_backlight(uint8_t brightness) {
-    timer_set_oc_value(TIM1, TIM_OC2, brightness);
+    timer_set_oc_value(TIM1, TIM_OC2, 255 - brightness);
 }
 
 void LCD::cs_select() {

@@ -14,6 +14,10 @@
 
 #include "nest_realtime.h"
 
+#ifdef __cplusplus
+#include "nest_wifi.h"
+#endif
+
 #define NEST_UART USART2
 
 #ifdef __cplusplus
