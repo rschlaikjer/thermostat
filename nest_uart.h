@@ -26,6 +26,7 @@ extern "C" {
     void uart_setup(void);
     void uart_putc(char c);
     uint16_t uart_getc(void);
+    uint16_t uart_poll(void);
     void uart_write(const uint8_t *buf, size_t len);
 
     // Redirect printf to usart

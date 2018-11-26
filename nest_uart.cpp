@@ -59,6 +59,14 @@ uint16_t uart_getc() {
     return usart_recv_blocking(NEST_UART);
 }
 
+uint16_t uart_poll() {
+    if ((USART_ISR(NEST_UART) & USART_ISR_RXNE) == 0) {
+        return -1;
+    }
+    return USART_RDR(NEST_UART) & USART_RDR_MASK;
+}
+
+
 void uart_write(const uint8_t *buf, size_t len) {
     for (size_t i = 0; i < len; i++) {
         uart_putc(buf[i]);
