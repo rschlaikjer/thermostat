@@ -1,6 +1,8 @@
 #ifndef NEST_WIFI_FIRMWARE_H
 #define NEST_WIFI_FIRMWARE_H
 
+#include <libopencm3/stm32/iwdg.h>
+
 extern "C" {
 #include <spi_flash/include/spi_flash.h>
 #include <driver/include/m2m_wifi.h>

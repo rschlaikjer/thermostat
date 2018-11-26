@@ -12,11 +12,13 @@ void wifi_firmware_update() {
     wifi_firmware_setup();
     while (true) {
         wifi_firmware_loop();
+        iwdg_reset();
     }
 }
 
 
 void wifi_firmware_setup() {
+    nm_bsp_init();
     if (m2m_wifi_download_mode() != M2M_SUCCESS) {
         printf("Failed to put the WiFi module in download mode\n");
         while (true);
