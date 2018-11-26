@@ -111,8 +111,9 @@ void LCD::clear() {
 void LCD::draw_text(const char *text, uint8_t x, uint8_t y) {
     uint8_t i = 0;
     while (*text) {
-        if (font_ascii[*text]) {
-            draw_glyph(font_ascii[*text], x + (8 * i), y);
+        unsigned char c = ((unsigned char) *text);
+        if (font_ascii[c]) {
+            draw_glyph(font_ascii[c], x + (8 * i), y);
         }
         i++;
         text++;
