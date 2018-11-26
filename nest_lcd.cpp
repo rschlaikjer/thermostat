@@ -46,7 +46,7 @@ void LCD::init() {
     spi_init();
 
     // Init DMA channel
-    dma_init();
+    // dma_init();
 
     // Unit sense
     gpio_mode_setup(LCD_PORT_UNITSEL, GPIO_MODE_INPUT, GPIO_PUPD_PULLDOWN, LCD_PIN_UNITSEL);
@@ -221,13 +221,6 @@ void LCD::write(uint8_t b) {
 void LCD::update() {
     // If not time to update, return.
     if (millis() - _last_display_update < LCD_UPDATE_MS) {
-        return;
-    }
-
-    // If it's time to update but a DMA transfer is still happening
-    // (this would be weird given DMA takes ~1ms) then skip the update
-    if (_dma_active) {
-        n_log("Skipping LCD update: DMA in progress\n");
         return;
     }
 
