@@ -16,7 +16,7 @@ STFLASH		= $(shell which st-flash)
 STYLECHECK	:= /checkpatch.pl
 STYLECHECKFLAGS	:= --no-tree -f --terse --mailback
 STYLECHECKFILES	:= $(shell find . -name '*.[ch]')
-OPT		:= -Os
+OPT		:= -O3
 DEBUG		:= -ggdb3
 CSTD		?= -std=c99
 
@@ -108,7 +108,7 @@ TGT_CFLAGS	+= $(OPT) $(CSTD) $(DEBUG)
 TGT_CFLAGS	+= $(ARCH_FLAGS)
 TGT_CFLAGS	+= -Wextra -Wshadow -Wimplicit-function-declaration
 TGT_CFLAGS	+= -Wredundant-decls -Wmissing-prototypes -Wstrict-prototypes
-TGT_CFLAGS	+= -fno-common -ffunction-sections -fdata-sections
+TGT_CFLAGS	+= -fno-common -ffunction-sections -fdata-sections -Wno-unused-parameter
 
 ###############################################################################
 # C++ flags
@@ -117,7 +117,7 @@ TGT_CXXFLAGS	+= $(OPT) $(CXXSTD) $(DEBUG)
 TGT_CXXFLAGS	+= $(ARCH_FLAGS)
 TGT_CXXFLAGS	+= -Wextra -Wshadow -Wredundant-decls -Weffc++
 TGT_CXXFLAGS	+= -fno-common -ffunction-sections -fdata-sections -fno-threadsafe-statics
-TGT_CXXFLAGS	+= -std=c++11
+TGT_CXXFLAGS	+= -std=c++11 -Wno-unused-parameter
 
 ###############################################################################
 # C & C++ preprocessor common flags
