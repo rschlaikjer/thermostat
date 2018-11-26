@@ -113,9 +113,15 @@ uint8_t WifiMgr::connect(const char *ssid, const char *psk) {
         (void *)psk,
         M2M_WIFI_CH_ALL
     );
+
+    // Check error
     if (ret) {
         n_log("Failed to connect: 0x%x\n", ret);
         led_enable_error();
+        if (_connect_error_count++ > max_connect_err_count) {
+            _connect_error_count = 0;
+            hard_reset();
+        }
         return ret;
     } else {
         led_disable_error();

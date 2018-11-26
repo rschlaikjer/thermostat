@@ -84,6 +84,8 @@ class WifiMgr {
         wl_socket_info _sockets[MAX_SOCKET];
         WifiFsm* _socket_handlers[MAX_SOCKET] = {NULL};
         uint64_t _last_ntp_sync = 0;
+        uint32_t _connect_error_count = 0;
+        const uint32_t max_connect_err_count = 3;
 
         // Status LED management
         void led_enable_wifi();
