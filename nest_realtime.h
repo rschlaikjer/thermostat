@@ -9,7 +9,8 @@ extern "C" {
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/cm3/systick.h>
 
-#define EST_OFFSET 14400000
+#define EDT_OFFSET 14400000
+#define EST_OFFSET 18000000
 
 void systick_setup(void);
 uint64_t millis(void);
