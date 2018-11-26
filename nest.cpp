@@ -30,6 +30,9 @@ static void clock_setup(void) {
 
 int main(void) {
     nest_init();
+#ifdef WIFI_FIRMWARE_UPDATE_MODE
+    wifi_firmware_update();
+#endif
     while (true) {
         nest_event_loop();
     }
@@ -43,7 +46,9 @@ void nest_init() {
     // Configure and enable watchdog timer
     iwdg_set_period_ms(WATCHDOG_TIMEOUT_MS);
     iwdg_reset();
+#ifndef WIFI_FIRMWARE_UPDATE_MODE
     iwdg_start();
+#endif
 
     // Enable systick to provide real-time-ish clocl
     systick_setup();
@@ -89,32 +94,8 @@ void nest_init() {
     Wifi.init();
 }
 
-#define READ_0_RATE_MS 3000
-#define READ_1_RATE_MS 30000
-
-uint64_t last_read_0 = 0;
-uint64_t last_read_1 = 0;
-uint64_t last_packet = 0;
-
-double temp, rh;
-
 uint64_t last_print = 0;
 void nest_event_loop() {
-    if (millis() - last_read_0 > READ_0_RATE_MS) {
-        if (sht_read(SHT_1_ADDR, &temp, &rh)) {
-            wifi_fsm.send_temperature(temp);
-            wifi_fsm.send_rh(rh);
-        }
-
-        uint16_t brightness = adc_read();
-        float brightness_perc = (((float) brightness) * 100) / 4096;
-        wifi_fsm.send_brightness(brightness_perc);
-
-        wifi_fsm.send_uptime(millis());
-
-        last_read_0 = millis();
-    }
-
     // Update temp, RH, brightness
     Sensors.update();
 

@@ -336,6 +336,7 @@ sint8 nm_drv_init(void * arg)
 	/* Must do this after global reset to set SPI data packet size. */
 	nm_spi_init();
 #endif
+#ifndef WIFI_FIRMWARE_UPDATE_MODE
 	ret = wait_for_bootrom(u8Mode);
 	if (M2M_SUCCESS != ret) {
 		goto ERR2;
@@ -357,6 +358,7 @@ sint8 nm_drv_init(void * arg)
 		M2M_ERR("failed to enable interrupts..\n");
 		goto ERR2;
 	}
+#endif
 	return ret;
 ERR2:
 	nm_bus_iface_deinit();
