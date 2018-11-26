@@ -111,6 +111,7 @@ void nest_event_loop() {
     // Tickle the watchdog
     iwdg_reset();
 
+    // Uart liveness indicator
     if (millis() - last_print > 1000) {
         last_print = millis();
         const time_t now = n_utc() / 1000;
@@ -118,5 +119,10 @@ void nest_event_loop() {
         char buf[20];
         strftime(buf, 21, "%Y-%m-%d  %H:%M:%S", &local);
         printf("[%s]\r", buf);
+
+        uint8_t backlight = 128 - (128 * (Sensors.get_brightness() / 100.0f));
+        if (backlight < 32)
+            backlight = 0;
+        lcd.set_backlight(backlight);
     }
 }
