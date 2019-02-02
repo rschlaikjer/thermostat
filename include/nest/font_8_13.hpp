@@ -1,6 +1,8 @@
 #ifndef FONT_8_13_H
 #define FONT_8_13_H
 
+#include <stdint.h>
+
 /*
  * This is part of the stock xterm 8x13 bitmap font,
  * encoded as 13 rows of 8 bits.
