@@ -6,8 +6,8 @@ extern "C" {
 #endif
 
 #include <libopencm3/cm3/nvic.h>
-#include <libopencm3/stm32/rcc.h>
 #include <libopencm3/cm3/systick.h>
+#include <libopencm3/stm32/rcc.h>
 
 #define EDT_OFFSET 14400000
 #define EST_OFFSET 18000000

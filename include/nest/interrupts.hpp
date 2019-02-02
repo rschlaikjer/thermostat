@@ -1,10 +1,10 @@
 #ifndef NEST_INTERRUPTS_H
 #define NEST_INTERRUPTS_H
 
-#include <libopencm3/stm32/gpio.h>
-#include <libopencm3/stm32/dma.h>
 #include <libopencm3/cm3/nvic.h>
+#include <libopencm3/stm32/dma.h>
 #include <libopencm3/stm32/exti.h>
+#include <libopencm3/stm32/gpio.h>
 
 #include <bsp/include/nm_bsp_opencm3.h>
 

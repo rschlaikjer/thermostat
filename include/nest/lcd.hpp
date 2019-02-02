@@ -5,15 +5,15 @@
 #include <string.h>
 #include <time.h>
 
-#include <libopencm3/stm32/rcc.h>
+#include <libopencm3/cm3/nvic.h>
 #include <libopencm3/stm32/dma.h>
 #include <libopencm3/stm32/gpio.h>
+#include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/timer.h>
-#include <libopencm3/cm3/nvic.h>
 
-#include <nest/spi.hpp>
 #include <nest/realtime.hpp>
 #include <nest/sensors.hpp>
+#include <nest/spi.hpp>
 
 #define LCD_UPDATE_MS 1000
 
@@ -29,56 +29,58 @@
 #define LCD_PORT_UNITSEL GPIOB
 #define LCD_PIN_UNITSEL GPIO1
 
-#define CMD_SET_DISP_START_LINE  0x40
-#define CMD_SET_PAGE  0xB0
-#define CMD_SET_COLUMN_UPPER  0x10
-#define CMD_SET_COLUMN_LOWER  0x00
+#define CMD_SET_DISP_START_LINE 0x40
+#define CMD_SET_PAGE 0xB0
+#define CMD_SET_COLUMN_UPPER 0x10
+#define CMD_SET_COLUMN_LOWER 0x00
 
 #ifdef __cplusplus
 
 class LCD {
-    public:
-        void init();
-        void update();
-        void powerOn();
-        void dma_write();
-        void dma_xfer_complete();
-        void set_backlight(uint8_t brightness);
-        bool use_celsius();
-    private:
-        volatile uint8_t _pixels[LCD_WIDTH * LCD_HEIGHT / 8];
-        uint64_t _last_display_update = -LCD_UPDATE_MS;
-        volatile bool _dma_active = false;
-        int _count = 0;
+public:
+  void init();
+  void update();
+  void powerOn();
+  void dma_write();
+  void dma_xfer_complete();
+  void set_backlight(uint8_t brightness);
+  bool use_celsius();
 
-        // Clear pixel buffer
-        void clear();
+private:
+  volatile uint8_t _pixels[LCD_WIDTH * LCD_HEIGHT / 8];
+  uint64_t _last_display_update = -LCD_UPDATE_MS;
+  volatile bool _dma_active = false;
+  int _count = 0;
 
-        uint16_t px_offset_for_xy(uint16_t x, uint16_t y);
-        // Render null-terminated text at x,y
-        void draw_glyph(const uint8_t *glyph, uint8_t x, uint8_t y);
-        void draw_text(const char *str, uint8_t x, uint8_t y);
+  // Clear pixel buffer
+  void clear();
 
-        // Render bitmap of dimens w,h at x,y
-        void draw_icon(const uint8_t *bitmap, uint8_t w, uint8_t h, uint8_t x, uint8_t y);
+  uint16_t px_offset_for_xy(uint16_t x, uint16_t y);
+  // Render null-terminated text at x,y
+  void draw_glyph(const uint8_t *glyph, uint8_t x, uint8_t y);
+  void draw_text(const char *str, uint8_t x, uint8_t y);
 
-        // Push pixel buffer to LCD
-        void render();
+  // Render bitmap of dimens w,h at x,y
+  void draw_icon(const uint8_t *bitmap, uint8_t w, uint8_t h, uint8_t x,
+                 uint8_t y);
 
-        // Set the backlight brightness
-        void set_contrast(uint8_t val);
+  // Push pixel buffer to LCD
+  void render();
 
-        void dma_init();
-        void spi_init();
+  // Set the backlight brightness
+  void set_contrast(uint8_t val);
 
-        // Pin management
-        void cs_select();
-        void cs_deselect();
-        void reset_enable();
-        void reset_disable();
-        void mode_cmd();
-        void mode_data();
-        void write(uint8_t b);
+  void dma_init();
+  void spi_init();
+
+  // Pin management
+  void cs_select();
+  void cs_deselect();
+  void reset_enable();
+  void reset_disable();
+  void mode_cmd();
+  void mode_data();
+  void write(uint8_t b);
 };
 
 extern LCD lcd;

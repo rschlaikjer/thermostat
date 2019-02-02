@@ -1,8 +1,8 @@
 #ifndef NEST_ADC_H
 #define NEST_ADC_H
 
-#include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/adc.h>
+#include <libopencm3/stm32/gpio.h>
 
 #include <nest/uart.hpp>
 
