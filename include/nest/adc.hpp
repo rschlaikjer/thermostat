@@ -4,7 +4,7 @@
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/adc.h>
 
-#include "nest_uart.h"
+#include <nest/uart.hpp>
 
 #define NEST_ADC ADC1
 

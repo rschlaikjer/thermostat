@@ -1,4 +1,4 @@
-#include "nest_sht.h"
+#include <nest/sht.hpp>
 
 uint8_t sht_read(const uint8_t sensor, double *temp_c, double *rh) {
     uint8_t cmd[2] = {0x2C, 0x06};

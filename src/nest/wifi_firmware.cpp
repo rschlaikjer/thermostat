@@ -1,4 +1,4 @@
-#include "nest_wifi_firmware.h"
+#include <nest/wifi_firmware.hpp>
 
 static const int MAX_PAYLOAD_SIZE = 1024;
 

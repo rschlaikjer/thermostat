@@ -1,4 +1,4 @@
-#include "nest_uart.h"
+#include <nest/uart.hpp>
 
 void uart_setup() {
     // Enable clocks for UART

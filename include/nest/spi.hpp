@@ -7,7 +7,7 @@
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/spi.h>
 
-#include "nest_uart.h"
+#include <nest/uart.hpp>
 
 #define NEST_SPI SPI2
 #define NEST_SPI_RCC RCC_SPI2

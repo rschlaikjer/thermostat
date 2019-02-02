@@ -1,10 +1,10 @@
 #ifndef NEST_WIFI_H
 #define NEST_WIFI_H
 
-#include "nest_realtime.h"
-#include "nest_uart.h"
-#include "nest_wifi_manager.h"
-#include "nest_secrets.h"
+#include <nest/realtime.hpp>
+#include <nest/uart.hpp>
+#include <nest/wifi_manager.hpp>
+#include <nest/secrets.hpp>
 
 #define RECONNECT_DELAY_MS 60000
 #define RECV_POLL_RATE_MS 1000

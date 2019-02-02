@@ -1,4 +1,4 @@
-#include "nest_wifi_manager.h"
+#include <nest/wifi_manager.hpp>
 
 // Callback bridges
 static void n_wifi_handle_event(uint8_t message_type, void *message_data);

@@ -11,9 +11,9 @@
 #include <libopencm3/stm32/timer.h>
 #include <libopencm3/cm3/nvic.h>
 
-#include "nest_spi.h"
-#include "nest_realtime.h"
-#include "nest_sensors.h"
+#include <nest/spi.hpp>
+#include <nest/realtime.hpp>
+#include <nest/sensors.hpp>
 
 #define LCD_UPDATE_MS 1000
 

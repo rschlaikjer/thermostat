@@ -5,7 +5,7 @@
 #include "bsp/include/nm_bsp_opencm3.h"
 #include "common/include/nm_common.h"
 #include "bus_wrapper/include/nm_bus_wrapper.h"
-#include "../nest_spi.h"
+#include <nest/spi.hpp>
 
 #define NM_BUS_MAX_TRX_SZ   256
 #define SPI_TIMEOUT_MS   100

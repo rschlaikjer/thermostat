@@ -12,10 +12,10 @@
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/usart.h>
 
-#include "nest_realtime.h"
+#include <nest/realtime.hpp>
 
 #ifdef __cplusplus
-#include "nest_wifi.h"
+#include <nest/wifi.hpp>
 #endif
 
 #define NEST_UART USART2

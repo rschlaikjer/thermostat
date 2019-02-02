@@ -4,16 +4,16 @@
 #include <string.h>
 
 extern "C" {
-#include "winc1500/driver/include/m2m_periph.h"
-#include "winc1500/driver/include/m2m_wifi.h"
-#include "winc1500/driver/include/m2m_ssl.h"
-#include "winc1500/socket/include/m2m_socket_host_if.h"
-#include "winc1500/socket/include/socket.h"
+#include <driver/include/m2m_periph.h>
+#include <driver/include/m2m_wifi.h>
+#include <driver/include/m2m_ssl.h>
+#include <socket/include/m2m_socket_host_if.h>
+#include <socket/include/socket.h>
 }
 
-#include "nest_realtime.h"
-#include "nest_wifi.h"
-#include "nest_secrets.h"
+#include <nest/realtime.hpp>
+#include <nest/wifi.hpp>
+#include <nest/secrets.hpp>
 
 #define SOCKET_BUFFER_SIZE 1472
 #define NTP_SYNC_INTERVAL_MS 3600000 // 1 hr

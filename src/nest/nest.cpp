@@ -1,13 +1,14 @@
-#include "nest.h"
 #include <stdio.h>
 #include <errno.h>
 #include <string.h>
 
+#include <nest/nest.hpp>
+
 extern "C" {
-    #include "winc1500/socket/include/socket.h"
-    #include "winc1500/driver/include/m2m_periph.h"
-    #include "winc1500/driver/include/m2m_wifi.h"
-    #include "winc1500/driver/include/m2m_ssl.h"
+    #include <socket/include/socket.h>
+    #include <driver/include/m2m_periph.h>
+    #include <driver/include/m2m_wifi.h>
+    #include <driver/include/m2m_ssl.h>
 }
 
 LCD lcd;

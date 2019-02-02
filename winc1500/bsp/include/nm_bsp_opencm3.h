@@ -7,8 +7,8 @@
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/spi.h>
 
-#include "../nest_realtime.h"
-#include "../nest_interrupts.h"
+#include <nest/realtime.hpp>
+#include <nest/interrupts.hpp>
 
 extern uint32_t gWincCSPort;
 extern uint16_t gWincCSPin;

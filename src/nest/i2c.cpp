@@ -1,4 +1,4 @@
-#include "nest_i2c.h"
+#include <nest/i2c.hpp>
 
 void i2c_scan() {
     printf("Scanning i2c bus:\n");

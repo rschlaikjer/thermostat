@@ -24,20 +24,21 @@ CSTD		?= -std=c99
 ###############################################################################
 # Source files
 
-OBJS		+= $(BINARY).o \
-			   $(BINARY)_uart.o \
-			   $(BINARY)_lcd.o \
-			   $(BINARY)_i2c.o \
-			   $(BINARY)_realtime.o \
-			   $(BINARY)_sht.o \
-			   $(BINARY)_adc.o \
-			   $(BINARY)_spi.o \
-			   $(BINARY)_relay.o \
-			   $(BINARY)_wifi.o \
-			   $(BINARY)_wifi_manager.o \
-			   $(BINARY)_wifi_firmware.o \
-			   $(BINARY)_interrupts.o \
-			   $(BINARY)_sensors.o \
+# Main nest firmware
+OBJS		+= src/nest/nest.o\
+			   src/nest/uart.o \
+			   src/nest/lcd.o \
+			   src/nest/i2c.o \
+			   src/nest/realtime.o \
+			   src/nest/sht.o \
+			   src/nest/adc.o \
+			   src/nest/spi.o \
+			   src/nest/relay.o \
+			   src/nest/wifi.o \
+			   src/nest/wifi_manager.o \
+			   src/nest/wifi_firmware.o \
+			   src/nest/interrupts.o \
+			   src/nest/sensors.o
 
 # WINC libraries
 OBJS	+= ./winc1500/socket/source/socket.o \
@@ -87,7 +88,9 @@ endef
 
 ifeq ($(strip $(DEVICE)),)
 # Old style, assume LDSCRIPT exists
-DEFS		+= -I$(OPENCM3_DIR)/include -I./winc1500/
+DEFS		+= -I$(OPENCM3_DIR)/include \
+			   -I./winc1500/ \
+			   -I./include
 LDFLAGS		+= -L$(OPENCM3_DIR)/lib
 LDLIBS		+= -l$(LIBNAME)
 LDSCRIPT	?= $(BINARY).ld

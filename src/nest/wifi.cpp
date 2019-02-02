@@ -1,4 +1,4 @@
-#include "nest_wifi.h"
+#include <nest/wifi.hpp>
 
 // Handle any events that need doing
 void WifiFsm::event_loop() {

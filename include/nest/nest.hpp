@@ -10,19 +10,19 @@
 #include <libopencm3/cm3/nvic.h>
 #include <libopencm3/cm3/systick.h>
 
-#include "nest_adc.h"
-#include "nest_i2c.h"
-#include "nest_interrupts.h"
-#include "nest_lcd.h"
-#include "nest_realtime.h"
-#include "nest_relay.h"
-#include "nest_secrets.h"
-#include "nest_sensors.h"
-#include "nest_sht.h"
-#include "nest_spi.h"
-#include "nest_uart.h"
-#include "nest_wifi.h"
-#include "nest_wifi_firmware.h"
+#include <nest/adc.hpp>
+#include <nest/i2c.hpp>
+#include <nest/interrupts.hpp>
+#include <nest/lcd.hpp>
+#include <nest/realtime.hpp>
+#include <nest/relay.hpp>
+#include <nest/secrets.hpp>
+#include <nest/sensors.hpp>
+#include <nest/sht.hpp>
+#include <nest/spi.hpp>
+#include <nest/uart.hpp>
+#include <nest/wifi.hpp>
+#include <nest/wifi_firmware.hpp>
 
 const uint32_t *STM32F0_CHIP_ID = reinterpret_cast<uint32_t *>(0x1FFFF7AC);
 

@@ -3,9 +3,9 @@
 
 #include <stdio.h>
 
-#include "nest_adc.h"
-#include "nest_realtime.h"
-#include "nest_sht.h"
+#include <nest/adc.hpp>
+#include <nest/realtime.hpp>
+#include <nest/sht.hpp>
 
 #define SENSOR_UPDATE_RATE_MS 3000
 

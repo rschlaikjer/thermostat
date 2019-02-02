@@ -1,4 +1,4 @@
-#include "nest_relay.h"
+#include <nest/relay.hpp>
 
 const uint32_t relay_port = GPIOA;
 const uint16_t relay_pin = GPIO0;

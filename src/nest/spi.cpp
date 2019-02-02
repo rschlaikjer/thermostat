@@ -1,4 +1,4 @@
-#include "nest_spi.h"
+#include <nest/spi.hpp>
 
 void n_spi_setup(void) {
     n_log("Initializing spi... ");

@@ -1,4 +1,4 @@
-#include "nest_adc.h"
+#include <nest/adc.hpp>
 
 uint8_t channel_array[] = { 8 };
 

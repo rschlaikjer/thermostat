@@ -1,5 +1,5 @@
-#include "nest_lcd.h"
-#include "font_8_13.h"
+#include <nest/lcd.hpp>
+#include <nest/font_8_13.hpp>
 
 #define LCD_SPI SPI1
 

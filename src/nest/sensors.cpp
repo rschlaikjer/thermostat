@@ -1,4 +1,4 @@
-#include "nest_sensors.h"
+#include <nest/sensors.hpp>
 
 void Sensors::update() {
     if (millis() - _last_read < SENSOR_UPDATE_RATE_MS)

@@ -6,11 +6,12 @@
 #include <libopencm3/cm3/nvic.h>
 #include <libopencm3/stm32/exti.h>
 
-#include "winc1500/bsp/include/nm_bsp_opencm3.h"
-#include "nest_uart.h"
+#include <bsp/include/nm_bsp_opencm3.h>
+
+#include <nest/uart.hpp>
 
 #ifdef __cplusplus
-#include "nest_lcd.h"
+#include <nest/lcd.hpp>
 #endif
 
 void interrupt_init(void);

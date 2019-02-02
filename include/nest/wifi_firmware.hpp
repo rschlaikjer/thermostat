@@ -7,7 +7,7 @@ extern "C" {
 #include <spi_flash/include/spi_flash.h>
 #include <driver/include/m2m_wifi.h>
 }
-#include "nest_uart.h"
+#include <nest/uart.hpp>
 
 #define CMD_READ_FLASH        0x01
 #define CMD_WRITE_FLASH       0x02
