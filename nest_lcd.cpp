@@ -146,7 +146,7 @@ void LCD::draw_glyph(const uint8_t *glyph, uint8_t x, uint8_t y) {
 }
 
 uint16_t LCD::px_offset_for_xy(uint16_t x, uint16_t y) {
-    return (y / 8) * 128 + x;
+    return (y / 8) * LCD_WIDTH + x;
 }
 
 void LCD::draw_icon(const uint8_t *bmp, uint8_t w, uint8_t h, uint8_t x, uint8_t y) {
