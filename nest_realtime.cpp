@@ -1,6 +1,9 @@
 #include "nest_realtime.h"
 
-static volatile uint64_t _millis = 0;
+namespace {
+    volatile uint64_t _millis = 0;
+}
+
 static uint64_t _utc_offset = 0;
 
 void systick_setup(void) {
