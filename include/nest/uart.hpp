@@ -4,15 +4,15 @@
 #include <stdint.h>
 #include <unistd.h>
 #include <errno.h>
-#include <stdio.h>
 #include <stdarg.h>
-#include <time.h>
 
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/usart.h>
 
 #include <nest/realtime.hpp>
+
+#include <printf/printf.h>
 
 #ifdef __cplusplus
 #include <nest/wifi.hpp>

@@ -60,6 +60,10 @@ OBJS	+= ./winc1500/socket/source/socket.o \
 	./winc1500/bsp/source/nm_bsp_opencm3.o \
 	./winc1500/bus_wrapper/source/nm_bus_wrapper_opencm3.o
 
+# Printf
+OBJS += ./src/printf/printf.o
+DEFS += -I./include/printf
+
 ifeq ($(strip $(OPENCM3_DIR)),)
 # user has not specified the library path, so we try to detect it
 

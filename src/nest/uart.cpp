@@ -19,15 +19,16 @@ void uart_setup() {
     // Finally enable the USART
     usart_enable(NEST_UART);
 
-    // One last thing: disable buffering on stdout.
-    // No point optimizing for minimizing nonexistend syscalls...
-    setbuf(stdout, NULL);
-
     printf("\r\n");
     for (uint8_t i = 0; i < 80; i++)
         uart_putc('=');
     printf("\r\n");
     n_log("UART initialized\n");
+}
+
+void _putchar(char c) {
+     if (c == '\n') uart_putc('\r');
+      uart_putc(c);
 }
 
 int _write(int file, char *ptr, int len) {
