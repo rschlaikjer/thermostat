@@ -133,7 +133,7 @@ void LCD::draw_glyph(const uint8_t *glyph, uint8_t x, uint8_t y) {
             const uint16_t px = x + blit;
             const uint16_t byten = (py / 8) * 128 + px;
             // If we're trying to draw outside our buffer, skip
-            if (byten > sizeof(_pixels)) {
+            if (byten >= sizeof(_pixels)) {
                 continue;
             }
             const uint16_t bitn = py % 8;
