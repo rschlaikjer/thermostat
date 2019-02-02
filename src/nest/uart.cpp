@@ -76,9 +76,9 @@ void uart_write(const uint8_t *buf, size_t len) {
 int n_log(const char *format, ...) {
     // Print the time
     const time_t now = n_utc() / 1000;
-    struct tm local = *localtime(&now);
     char buf[20];
-    strftime(buf, 21, "%Y-%m-%d  %H:%M:%S", &local);
+    // struct tm local = *localtime(&now);
+    // strftime(buf, 21, "%Y-%m-%d  %H:%M:%S", &local);
     printf("[%s] ", buf);
 
     // Proxy args to actual printf

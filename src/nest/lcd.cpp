@@ -266,8 +266,8 @@ void LCD::update() {
 
     // Date & time
     const time_t now = n_est() / 1000;
-    struct tm local = *localtime(&now);
-    strftime(buf, 21, "%H:%M %d/%m/%Y", &local);
+    // struct tm local = *localtime(&now);
+    // strftime(buf, 21, "%H:%M %d/%m/%Y", &local);
     draw_text(buf, 0, 53);
 
     // Home the data cursor to the origin
